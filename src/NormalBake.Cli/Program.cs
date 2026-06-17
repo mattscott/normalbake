@@ -90,6 +90,7 @@ internal static class Program
         var space = NormalSpace.Tangent;
         var map = MapType.Normal;
         int occlusionSamples = 32;
+        int threads = -1;
         bool fallback = true;
         bool bc7 = false;
 
@@ -106,6 +107,9 @@ internal static class Program
                     break;
                 case "--occ-samples":
                     occlusionSamples = ParseInt(Next(args, ref i), "--occ-samples");
+                    break;
+                case "--threads":
+                    threads = ParseInt(Next(args, ref i), "--threads");
                     break;
                 case "--space":
                     space = ParseSpace(Next(args, ref i));
@@ -166,6 +170,7 @@ internal static class Program
             Space = space,
             Map = map,
             OcclusionSamples = occlusionSamples,
+            Threads = threads,
             NearestPointFallback = fallback,
         };
         return new Config(high, low, output, options, bc7);
@@ -256,6 +261,7 @@ internal static class Program
         Console.WriteLine($"  --map <type>            normal|position|ao|thickness|curvature|id (default {d.Map})");
         Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");
         Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
+        Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");
         Console.WriteLine($"  --frontal <d>           outer cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --rear <d>              inner cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --no-fallback           don't fill cage misses from the nearest surface point");

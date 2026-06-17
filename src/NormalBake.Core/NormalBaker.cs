@@ -124,11 +124,7 @@ public static class NormalBaker
         var hemi = new Hemisphere(options.OcclusionSamples);
 
         var ctx = new BakeContext(high, low, bvh, options, frontal, rear, idColor, hemi, occRadius, occBias);
-        ReadOnlySpan<int> indices = low.Indices;
-        for (int t = 0; t < indices.Length; t += 3)
-        {
-            ctx.RasterizeTriangle(indices[t], indices[t + 1], indices[t + 2], accum, coverage);
-        }
+        ctx.Run(accum, coverage, options.Threads);
     }
 
     private static BakedMap Resolve(
@@ -309,6 +305,7 @@ public static class NormalBaker
         private readonly Vector3[] _loNormals;
         private readonly Vector2[] _loUvs;
         private readonly Vector4[] _loTangents;
+        private readonly int[] _loIndices;
         private readonly Bvh _bvh;
         private readonly MapType _map;
         private readonly NormalSpace _space;
@@ -335,6 +332,7 @@ public static class NormalBaker
             _loNormals = low.NormalArray;
             _loUvs = low.UvArray;
             _loTangents = low.TangentArray;
+            _loIndices = low.IndexArray;
             _bvh = bvh;
             _map = options.Map;
             _space = options.Space;
@@ -351,8 +349,74 @@ public static class NormalBaker
             _occBias = occBias;
         }
 
-        public void RasterizeTriangle(int i0, int i1, int i2, Vector3[] accum, int[] coverage)
+        private const int TileSize = 32;
+
+        /// <summary>
+        /// Bakes all triangles into <paramref name="accum"/>/<paramref name="coverage"/>, parallelized over
+        /// output tiles. Each texel belongs to exactly one tile (no write races), and within a tile its
+        /// samples are summed in <b>triangle-index order</b> — identical to the serial bake, so the result
+        /// is bit-exact regardless of thread count (the determinism rule).
+        /// </summary>
+        public void Run(Vector3[] accum, int[] coverage, int threads)
         {
+            int tilesPerSide = (_res + TileSize - 1) / TileSize;
+            var tileTriangles = new List<int>[tilesPerSide * tilesPerSide];
+            int triCount = _loIndices.Length / 3;
+            for (int t = 0; t < triCount; t++)
+            {
+                if (!TexelBounds(t, out int x0, out int y0, out int x1, out int y1))
+                {
+                    continue;
+                }
+
+                for (int ty = y0 / TileSize; ty <= y1 / TileSize; ty++)
+                {
+                    for (int tx = x0 / TileSize; tx <= x1 / TileSize; tx++)
+                    {
+                        int tile = (ty * tilesPerSide) + tx;
+                        (tileTriangles[tile] ??= new List<int>()).Add(t);
+                    }
+                }
+            }
+
+            var options = new ParallelOptions { MaxDegreeOfParallelism = threads <= 0 ? -1 : threads };
+            Parallel.For(0, tileTriangles.Length, options, tile =>
+            {
+                List<int>? list = tileTriangles[tile];
+                if (list is null)
+                {
+                    return;
+                }
+
+                int tx = tile % tilesPerSide;
+                int ty = tile / tilesPerSide;
+                int clipX1 = Math.Min(_res - 1, ((tx + 1) * TileSize) - 1);
+                int clipY1 = Math.Min(_res - 1, ((ty + 1) * TileSize) - 1);
+                foreach (int t in list)
+                {
+                    RasterizeTriangle(t, accum, coverage, tx * TileSize, ty * TileSize, clipX1, clipY1);
+                }
+            });
+        }
+
+        private bool TexelBounds(int t, out int x0, out int y0, out int x1, out int y1)
+        {
+            Vector2 t0 = ToTexel(_loUvs[_loIndices[t * 3]]);
+            Vector2 t1 = ToTexel(_loUvs[_loIndices[(t * 3) + 1]]);
+            Vector2 t2 = ToTexel(_loUvs[_loIndices[(t * 3) + 2]]);
+            x0 = Math.Max(0, (int)MathF.Floor(MathF.Min(t0.X, MathF.Min(t1.X, t2.X))));
+            x1 = Math.Min(_res - 1, (int)MathF.Ceiling(MathF.Max(t0.X, MathF.Max(t1.X, t2.X))));
+            y0 = Math.Max(0, (int)MathF.Floor(MathF.Min(t0.Y, MathF.Min(t1.Y, t2.Y))));
+            y1 = Math.Min(_res - 1, (int)MathF.Ceiling(MathF.Max(t0.Y, MathF.Max(t1.Y, t2.Y))));
+            return x0 <= x1 && y0 <= y1;
+        }
+
+        private void RasterizeTriangle(
+            int t, Vector3[] accum, int[] coverage, int clipX0, int clipY0, int clipX1, int clipY1)
+        {
+            int i0 = _loIndices[t * 3];
+            int i1 = _loIndices[(t * 3) + 1];
+            int i2 = _loIndices[(t * 3) + 2];
             Vector2 t0 = ToTexel(_loUvs[i0]);
             Vector2 t1 = ToTexel(_loUvs[i1]);
             Vector2 t2 = ToTexel(_loUvs[i2]);
@@ -361,10 +425,10 @@ public static class NormalBaker
             float maxX = MathF.Max(t0.X, MathF.Max(t1.X, t2.X));
             float minY = MathF.Min(t0.Y, MathF.Min(t1.Y, t2.Y));
             float maxY = MathF.Max(t0.Y, MathF.Max(t1.Y, t2.Y));
-            int x0 = Math.Max(0, (int)MathF.Floor(minX));
-            int x1 = Math.Min(_res - 1, (int)MathF.Ceiling(maxX));
-            int y0 = Math.Max(0, (int)MathF.Floor(minY));
-            int y1 = Math.Min(_res - 1, (int)MathF.Ceiling(maxY));
+            int x0 = Math.Max(clipX0, (int)MathF.Floor(minX));
+            int x1 = Math.Min(clipX1, (int)MathF.Ceiling(maxX));
+            int y0 = Math.Max(clipY0, (int)MathF.Floor(minY));
+            int y1 = Math.Min(clipY1, (int)MathF.Ceiling(maxY));
 
             float area = EdgeFunction(t0, t1, t2);
             if (MathF.Abs(area) < 1e-12f)
