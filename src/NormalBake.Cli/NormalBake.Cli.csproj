@@ -4,8 +4,13 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>NormalBake.Cli</RootNamespace>
     <AssemblyName>normalbake</AssemblyName>
-    <Description>Command-line front-end for the NormalBake library.</Description>
+    <Description>Command-line normal/AO/curvature/position/ID map baker (the NormalBake CLI).</Description>
     <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Installs as a global dotnet tool named 'normalbake'. -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>normalbake</ToolCommandName>
+    <PackageId>NormalBake.Tool</PackageId>
   </PropertyGroup>
 
   <ItemGroup>

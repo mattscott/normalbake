@@ -14,24 +14,42 @@ public static class NormalBaker
 {
     /// <summary>Bakes a map for one high/low pair. The low-poly's tangents are computed if not present.</summary>
     public static BakedMap Bake(Mesh highPoly, UvMesh lowPoly, NormalBakeOptions options) =>
-        Bake(highPoly, lowPoly, options, out _);
+        Bake(highPoly, lowPoly, options, progress: null, CancellationToken.None);
+
+    /// <summary>Bakes a map with progress reporting (0→1) and cancellation for long bakes.</summary>
+    public static BakedMap Bake(
+        Mesh highPoly,
+        UvMesh lowPoly,
+        NormalBakeOptions options,
+        IProgress<float>? progress,
+        CancellationToken cancellationToken = default) =>
+        BakeCore(highPoly, lowPoly, options, progress, cancellationToken, out _);
 
     /// <summary>Bakes and also returns the pre-dilation coverage mask (true where a texel was baked).</summary>
     internal static BakedMap Bake(
-        Mesh highPoly, UvMesh lowPoly, NormalBakeOptions options, out bool[] bakedMask)
+        Mesh highPoly, UvMesh lowPoly, NormalBakeOptions options, out bool[] bakedMask) =>
+        BakeCore(highPoly, lowPoly, options, progress: null, CancellationToken.None, out bakedMask);
+
+    private static BakedMap BakeCore(
+        Mesh highPoly, UvMesh lowPoly, NormalBakeOptions options, IProgress<float>? progress,
+        CancellationToken cancellationToken, out bool[] bakedMask)
     {
         ArgumentNullException.ThrowIfNull(highPoly);
         ArgumentNullException.ThrowIfNull(lowPoly);
         ArgumentNullException.ThrowIfNull(options);
 
+        cancellationToken.ThrowIfCancellationRequested();
         UvContract.ValidateOrThrow(lowPoly, new UvValidationOptions { Resolution = options.Resolution });
+        progress?.Report(0.05f);
 
         int res = options.Resolution;
         var accum = new Vector3[res * res];
         var coverage = new int[res * res];
         Aabb bounds = BoundsOf(highPoly.Positions);
-        Accumulate(highPoly, lowPoly, options, accum, coverage, IdColor(0), bounds);
-        return Resolve(accum, coverage, options, bounds, out bakedMask);
+        Accumulate(highPoly, lowPoly, options, accum, coverage, IdColor(0), bounds, progress, 0.1f, 0.9f, cancellationToken);
+        BakedMap map = Resolve(accum, coverage, options, bounds, out bakedMask);
+        progress?.Report(1f);
+        return map;
     }
 
     /// <summary>
@@ -39,7 +57,8 @@ public static class NormalBaker
     /// high-poly (a separate BVH per part). This match-by-name isolation stops a nearby part's geometry
     /// from bleeding into another part's bake, and gives each part a distinct ID colour.
     /// </summary>
-    public static BakedMap BakeParts(IReadOnlyList<BakePart> parts, NormalBakeOptions options)
+    public static BakedMap BakeParts(
+        IReadOnlyList<BakePart> parts, NormalBakeOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parts);
         ArgumentNullException.ThrowIfNull(options);
@@ -62,7 +81,8 @@ public static class NormalBaker
         {
             BakePart part = parts[p];
             UvContract.ValidateOrThrow(part.Low, new UvValidationOptions { Resolution = res });
-            Accumulate(part.High, part.Low, options, accum, coverage, IdColor(p), bounds);
+            Accumulate(
+                part.High, part.Low, options, accum, coverage, IdColor(p), bounds, null, 0f, 0f, cancellationToken);
         }
 
         return Resolve(accum, coverage, options, bounds, out _);
@@ -108,7 +128,8 @@ public static class NormalBaker
 
     private static void Accumulate(
         Mesh high, UvMesh low, NormalBakeOptions options, Vector3[] accum, int[] coverage, Vector3 idColor,
-        Aabb bounds)
+        Aabb bounds, IProgress<float>? progress, float progressFrom, float progressTo,
+        CancellationToken cancellationToken)
     {
         if (!low.HasTangents)
         {
@@ -124,7 +145,7 @@ public static class NormalBaker
         var hemi = new Hemisphere(options.OcclusionSamples);
 
         var ctx = new BakeContext(high, low, bvh, options, frontal, rear, idColor, hemi, occRadius, occBias);
-        ctx.Run(accum, coverage, options.Threads);
+        ctx.Run(accum, coverage, options.Threads, progress, progressFrom, progressTo, cancellationToken);
     }
 
     private static BakedMap Resolve(
@@ -357,7 +378,9 @@ public static class NormalBaker
         /// samples are summed in <b>triangle-index order</b> — identical to the serial bake, so the result
         /// is bit-exact regardless of thread count (the determinism rule).
         /// </summary>
-        public void Run(Vector3[] accum, int[] coverage, int threads)
+        public void Run(
+            Vector3[] accum, int[] coverage, int threads, IProgress<float>? progress, float progressFrom,
+            float progressTo, CancellationToken cancellationToken)
         {
             int tilesPerSide = (_res + TileSize - 1) / TileSize;
             var tileTriangles = new List<int>[tilesPerSide * tilesPerSide];
@@ -379,22 +402,32 @@ public static class NormalBaker
                 }
             }
 
-            var options = new ParallelOptions { MaxDegreeOfParallelism = threads <= 0 ? -1 : threads };
-            Parallel.For(0, tileTriangles.Length, options, tile =>
+            var options = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = threads <= 0 ? -1 : threads,
+                CancellationToken = cancellationToken,
+            };
+            int done = 0;
+            int total = tileTriangles.Length;
+            Parallel.For(0, total, options, tile =>
             {
                 List<int>? list = tileTriangles[tile];
-                if (list is null)
+                if (list is not null)
                 {
-                    return;
+                    int tx = tile % tilesPerSide;
+                    int ty = tile / tilesPerSide;
+                    int clipX1 = Math.Min(_res - 1, ((tx + 1) * TileSize) - 1);
+                    int clipY1 = Math.Min(_res - 1, ((ty + 1) * TileSize) - 1);
+                    foreach (int t in list)
+                    {
+                        RasterizeTriangle(t, accum, coverage, tx * TileSize, ty * TileSize, clipX1, clipY1);
+                    }
                 }
 
-                int tx = tile % tilesPerSide;
-                int ty = tile / tilesPerSide;
-                int clipX1 = Math.Min(_res - 1, ((tx + 1) * TileSize) - 1);
-                int clipY1 = Math.Min(_res - 1, ((ty + 1) * TileSize) - 1);
-                foreach (int t in list)
+                if (progress is not null)
                 {
-                    RasterizeTriangle(t, accum, coverage, tx * TileSize, ty * TileSize, clipX1, clipY1);
+                    int n = Interlocked.Increment(ref done);
+                    progress.Report(progressFrom + ((progressTo - progressFrom) * (n / (float)total)));
                 }
             });
         }

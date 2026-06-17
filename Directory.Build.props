@@ -17,11 +17,16 @@
     <Deterministic>true</Deterministic>
     <InvariantGlobalization>true</InvariantGlobalization>
 
-    <!-- Packaging metadata (used from the packaging phase; harmless now). -->
+    <!-- Packaging metadata. -->
+    <Version>1.0.0</Version>
     <Authors>Matthew Scott</Authors>
     <Product>NormalBake</Product>
     <Copyright>Copyright (c) 2026 Matthew Scott</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/mattscott/normalbake</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mattscott/normalbake</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>normal-map;baking;mesh;mikktspace;bvh;texture;gamedev;ambient-occlusion;dds</PackageTags>
   </PropertyGroup>
 
   <!-- Embed source-control metadata only on CI builds. -->

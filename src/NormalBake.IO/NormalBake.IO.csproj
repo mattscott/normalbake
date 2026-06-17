@@ -3,7 +3,8 @@
   <PropertyGroup>
     <RootNamespace>NormalBake.IO</RootNamespace>
     <AssemblyName>NormalBake.IO</AssemblyName>
-    <Description>Mesh readers/writers (OBJ first) and image writers (PNG first) for NormalBake.</Description>
+    <Description>Mesh readers/writers (OBJ, glTF) and image writers (PNG, DDS, EXR) for NormalBake.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
