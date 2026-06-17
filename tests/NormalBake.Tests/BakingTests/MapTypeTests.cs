@@ -146,6 +146,41 @@ public class MapTypeTests
         Assert.Equal(baked.Count(b => b), white); // white exactly matches the coverage mask
     }
 
+    [Fact]
+    public void Coverage_HasAntiAliasedEdges()
+    {
+        MeshPair pair = Primitives.Box();
+        var opt = new NormalBakeOptions { Resolution = 128, Samples = 4, Map = MapType.Coverage };
+        BakedMap map = NormalBaker.Bake(pair.High, pair.Low, opt);
+
+        int full = 0;
+        int partial = 0;
+        int black = 0;
+        for (int y = 0; y < map.Height; y++)
+        {
+            for (int x = 0; x < map.Width; x++)
+            {
+                float g = map.GetPixel(x, y).R;
+                if (g >= 0.999f)
+                {
+                    full++;
+                }
+                else if (g is > 0.01f and < 0.99f)
+                {
+                    partial++; // anti-aliased edge — impossible for the binary Mask
+                }
+                else if (g == 0f)
+                {
+                    black++;
+                }
+            }
+        }
+
+        Assert.True(full > 200, $"expected solid interior, got {full}");
+        Assert.True(partial > 50, $"expected anti-aliased gray edges, got {partial}");
+        Assert.True(black > 200, "expected a black background");
+    }
+
     [Theory]
     [InlineData(MapType.Normal)]
     [InlineData(MapType.Position)]

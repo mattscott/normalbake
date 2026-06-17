@@ -179,6 +179,19 @@ public static class NormalBaker
         {
             ResolveCurvature(averaged, covered, res, map);
         }
+        else if (options.Map == MapType.Coverage)
+        {
+            int maxSamples = Math.Max(1, options.Samples);
+            maxSamples *= maxSamples;
+            for (int i = 0; i < covered.Length; i++)
+            {
+                if (covered[i])
+                {
+                    float g = MathF.Min(1f, coverage[i] / (float)maxSamples); // fraction of supersamples on surface
+                    map.SetPixel(i % res, i / res, g, g, g);
+                }
+            }
+        }
         else
         {
             for (int i = 0; i < covered.Length; i++)
@@ -191,9 +204,9 @@ public static class NormalBaker
             }
         }
 
-        if (options.Map != MapType.Mask)
+        if (options.Map is not (MapType.Mask or MapType.Coverage))
         {
-            Dilation.Extend(map, covered); // the mask must keep a black background to isolate the surface
+            Dilation.Extend(map, covered); // mask/coverage keep a black background to isolate the surface
         }
 
         return map;
@@ -525,7 +538,8 @@ public static class NormalBaker
                     value = _idColor;
                     return true;
                 case MapType.Mask:
-                    value = Vector3.One; // white wherever a UV triangle covers the texel (no ray needed)
+                case MapType.Coverage:
+                    value = Vector3.One; // one per supersample on surface; Resolve turns counts into the mask
                     return true;
                 case MapType.AmbientOcclusion:
                     value = Broadcast(AmbientOcclusion(p, n));

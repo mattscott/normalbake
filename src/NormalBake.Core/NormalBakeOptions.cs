@@ -34,8 +34,11 @@ public enum MapType
     /// <summary>Per-part flat ID colour with hard (un-antialiased) boundaries.</summary>
     ObjectId,
 
-    /// <summary>Coverage mask — white where the low-poly surface occupies UV space, black elsewhere (no dilation).</summary>
+    /// <summary>Binary coverage mask — white where the low-poly surface occupies UV space, black elsewhere (no dilation).</summary>
     Mask,
+
+    /// <summary>Anti-aliased coverage — grayscale = fraction of supersamples on the surface (soft edges, no dilation).</summary>
+    Coverage,
 }
 
 /// <summary>The frame a baked normal is expressed in.</summary>
