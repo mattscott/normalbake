@@ -101,6 +101,8 @@ public sealed class UvMesh
 
     internal Vector2[] UvArray => _uvs;
 
+    internal Vector4[] TangentArray => _tangents;
+
     internal int[] IndexArray => _indices;
 
     /// <summary>
