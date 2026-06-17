@@ -42,6 +42,37 @@ public static class Primitives
         return new MeshPair("cylinder", high, low);
     }
 
+    /// <summary>
+    /// Two coplanar quads (normal +Z) in two separate UV islands: island A with standard UVs and
+    /// island B with U mirrored. The mirror must flip the tangent handedness <c>w</c> — the canonical
+    /// MikkTSpace mirrored-UV test without needing a downloaded glTF asset. Vertices 0..3 are island A,
+    /// 4..7 island B.
+    /// </summary>
+    public static UvMesh MirroredQuads()
+    {
+        var pos = new List<Vector3>();
+        var nrm = new List<Vector3>();
+        var uv = new List<Vector2>();
+        var idx = new List<int>();
+        Vector3 n = Vector3.UnitZ;
+
+        int a = pos.Count; // island A: +U follows +X
+        AddVertex(pos, nrm, uv, new Vector3(0, 0, 0), n, new Vector2(0.05f, 0.05f));
+        AddVertex(pos, nrm, uv, new Vector3(1, 0, 0), n, new Vector2(0.40f, 0.05f));
+        AddVertex(pos, nrm, uv, new Vector3(1, 1, 0), n, new Vector2(0.40f, 0.40f));
+        AddVertex(pos, nrm, uv, new Vector3(0, 1, 0), n, new Vector2(0.05f, 0.40f));
+        AddQuad(idx, a, a + 1, a + 2, a + 3);
+
+        int b = pos.Count; // island B: +U follows -X (mirrored)
+        AddVertex(pos, nrm, uv, new Vector3(2, 0, 0), n, new Vector2(0.95f, 0.05f));
+        AddVertex(pos, nrm, uv, new Vector3(3, 0, 0), n, new Vector2(0.60f, 0.05f));
+        AddVertex(pos, nrm, uv, new Vector3(3, 1, 0), n, new Vector2(0.60f, 0.40f));
+        AddVertex(pos, nrm, uv, new Vector3(2, 1, 0), n, new Vector2(0.95f, 0.40f));
+        AddQuad(idx, b, b + 1, b + 2, b + 3);
+
+        return new UvMesh(pos.ToArray(), nrm.ToArray(), uv.ToArray(), idx.ToArray());
+    }
+
     // --- sphere -----------------------------------------------------------------------------------
 
     private static Mesh BuildUvSphere(float r, int stacks, int slices)
