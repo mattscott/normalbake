@@ -290,8 +290,10 @@ internal static class Program
     private static NormalMapConvention ParseConvention(string value) => value.ToLowerInvariant() switch
     {
         "opengl" or "gl" => NormalMapConvention.OpenGl,
-        "directx" or "dx" => NormalMapConvention.DirectX,
-        _ => throw new ArgumentException($"--convention must be 'opengl' or 'directx', got '{value}'."),
+        // Unreal (UE3/UDK through UE5), 3ds Max and Source all use the DirectX green-down (Y−) convention.
+        "directx" or "dx" or "unreal" or "ue" or "ue3" or "ue4" or "ue5" or "udk" => NormalMapConvention.DirectX,
+        _ => throw new ArgumentException(
+            $"--convention must be opengl|directx|unreal, got '{value}'."),
     };
 
     private static void PrintUsage()
@@ -307,7 +309,7 @@ internal static class Program
         Console.WriteLine($"  -o, --output <path>     output image (required)");
         Console.WriteLine($"  --res <n>               texture resolution (default {d.Resolution})");
         Console.WriteLine($"  --samples <n>           supersample grid N (NxN rays/texel, default {d.Samples})");
-        Console.WriteLine($"  --convention <gl|dx>    green-channel convention (default {d.Convention})");
+        Console.WriteLine($"  --convention <gl|dx|unreal>  green-channel convention (default {d.Convention}; unreal=dx, green-down)");
         Console.WriteLine($"  --bitdepth <8|16>       bits per channel for PNG (default {d.BitDepth})");
         Console.WriteLine($"  --map <type>            normal|position|ao|thickness|curvature|id|mask|coverage (default {d.Map})");
         Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");

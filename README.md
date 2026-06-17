@@ -58,7 +58,7 @@ normalbake high.obj low.obj -o normal.png --space object --convention dx --sampl
 | `--map <type>` | `normal` (default) · `position` · `ao` · `thickness` · `curvature` · `id` |
 | `--res <n>` | output resolution (default 2048) |
 | `--samples <n>` | N×N supersampling per texel (default 4) |
-| `--convention <gl\|dx>` | green-channel convention (default OpenGL) |
+| `--convention <gl\|dx\|unreal>` | green-channel convention (default OpenGL; `unreal`/`dx` = green-down, for Unreal/UE3-UE5, 3ds Max, Source) |
 | `--space <tangent\|object>` | normal frame (default tangent) |
 | `--bitdepth <8\|16>` | PNG bit depth (default 16) |
 | `--frontal/--rear <d>` | cage envelope distances (0 = auto from bounds) |
