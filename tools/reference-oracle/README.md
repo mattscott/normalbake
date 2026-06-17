@@ -31,8 +31,17 @@ hard-gate on **per-pixel tolerance** (small epsilon + small allowed failing frac
 **SSIM/PSNR** trend, and emit a **FLIP** perceptual error map as a CI artifact on failure. Decode-compare
 BC5/BC7 outputs against the uncompressed golden so compression error is not conflated with bake error.
 
+## Scripts (added in P1)
+
+- [`bake_normal.py`](bake_normal.py) — Blender-headless tangent-space normal bake (Selected to Active,
+  MikkTSpace basis, CPU + fixed samples, **Extend** margin, Non-Color/linear 16-bit PNG out). Run:
+  `blender --background --python bake_normal.py -- --high high.obj --low low.obj --out golden.png`.
+- [`download-corpus.ps1`](download-corpus.ps1) — fetches tier-B real assets (glTF
+  `NormalTangentTest` / `NormalTangentMirrorTest` / `DamagedHelmet`, Stanford sources) into
+  `tests/corpus/_downloads/` (git-ignored). The committed tier-A procedural corpus needs no download.
+
 ## Status
 
-Scaffold only — scripts are added in **P0/P1** (see
-[`../../Agents/Plans/02-phase-roadmap.md`](../../Agents/Plans/02-phase-roadmap.md)). The working tree
-(`_work/`, logs) is git-ignored; the committed goldens under `tests/golden/` are not.
+Scripts are in place (P1); they are run **locally** to emit goldens — Blender is not a CI dependency
+yet (goldens are wired at **P4**). The working tree (`_work/`, logs) and `tests/corpus/_downloads/` are
+git-ignored; the committed goldens under `tests/golden/` are not.

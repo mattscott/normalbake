@@ -30,6 +30,10 @@ coverage/
 tools/reference-oracle/_work/
 tools/reference-oracle/*.log
 
+# Tier-B downloaded corpus (large real assets fetched by download-corpus.ps1). The procedural
+# tier-A corpus under tests/corpus/<name>/ IS committed; only the downloads are ignored.
+tests/corpus/_downloads/
+
 # OS cruft
 Thumbs.db
 .DS_Store

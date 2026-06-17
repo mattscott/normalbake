@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- IO shares Core's deterministic triangulation helper; Tests reach internals for unit tests. -->
+    <InternalsVisibleTo Include="NormalBake.IO" />
     <InternalsVisibleTo Include="NormalBake.Tests" />
   </ItemGroup>
 
