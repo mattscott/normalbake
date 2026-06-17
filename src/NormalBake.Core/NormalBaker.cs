@@ -191,7 +191,11 @@ public static class NormalBaker
             }
         }
 
-        Dilation.Extend(map, covered);
+        if (options.Map != MapType.Mask)
+        {
+            Dilation.Extend(map, covered); // the mask must keep a black background to isolate the surface
+        }
+
         return map;
     }
 
@@ -519,6 +523,9 @@ public static class NormalBaker
             {
                 case MapType.ObjectId:
                     value = _idColor;
+                    return true;
+                case MapType.Mask:
+                    value = Vector3.One; // white wherever a UV triangle covers the texel (no ray needed)
                     return true;
                 case MapType.AmbientOcclusion:
                     value = Broadcast(AmbientOcclusion(p, n));

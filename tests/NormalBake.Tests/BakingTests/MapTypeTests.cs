@@ -117,6 +117,35 @@ public class MapTypeTests
         Assert.True(edge > 20, $"box edges should spike, got {edge}");
     }
 
+    [Fact]
+    public void Mask_IsWhiteOnSurface_WithBlackUndilatedBackground()
+    {
+        // The box has per-face islands with gutters, so there is real background between them.
+        MeshPair pair = Primitives.Box();
+        var opt = new NormalBakeOptions { Resolution = 128, Samples = 2, Map = MapType.Mask };
+        BakedMap map = NormalBaker.Bake(pair.High, pair.Low, opt, out bool[] baked);
+
+        int white = 0;
+        int black = 0;
+        for (int i = 0; i < baked.Length; i++)
+        {
+            (float r, float g, float b) = map.GetPixel(i % map.Width, i / map.Width);
+            if (baked[i])
+            {
+                Assert.True(r == 1f && g == 1f && b == 1f, $"baked texel {i} not white");
+                white++;
+            }
+            else if (r == 0f && g == 0f && b == 0f)
+            {
+                black++;
+            }
+        }
+
+        Assert.True(white > 200, $"expected a white surface, got {white}");
+        Assert.True(black > 200, "expected a black, un-dilated background");
+        Assert.Equal(baked.Count(b => b), white); // white exactly matches the coverage mask
+    }
+
     [Theory]
     [InlineData(MapType.Normal)]
     [InlineData(MapType.Position)]

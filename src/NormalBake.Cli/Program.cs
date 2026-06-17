@@ -233,8 +233,9 @@ internal static class Program
         "thickness" => MapType.Thickness,
         "curvature" or "curve" => MapType.Curvature,
         "id" or "objectid" => MapType.ObjectId,
+        "mask" => MapType.Mask,
         _ => throw new ArgumentException(
-            $"--map must be normal|position|ao|thickness|curvature|id, got '{value}'."),
+            $"--map must be normal|position|ao|thickness|curvature|id|mask, got '{value}'."),
     };
 
     private static NormalSpace ParseSpace(string value) => value.ToLowerInvariant() switch
@@ -307,7 +308,7 @@ internal static class Program
         Console.WriteLine($"  --samples <n>           supersample grid N (NxN rays/texel, default {d.Samples})");
         Console.WriteLine($"  --convention <gl|dx>    green-channel convention (default {d.Convention})");
         Console.WriteLine($"  --bitdepth <8|16>       bits per channel for PNG (default {d.BitDepth})");
-        Console.WriteLine($"  --map <type>            normal|position|ao|thickness|curvature|id (default {d.Map})");
+        Console.WriteLine($"  --map <type>            normal|position|ao|thickness|curvature|id|mask (default {d.Map})");
         Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");
         Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
         Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");
