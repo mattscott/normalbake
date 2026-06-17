@@ -49,6 +49,19 @@ public class GltfReaderTests
     }
 
     [Fact]
+    public void ReadMesh_RecoversGeometry_IgnoringUvs()
+    {
+        byte[] glb = BuildGlb(Positions, Normals, Uvs, Tangents, Indices);
+
+        using var stream = new MemoryStream(glb);
+        Mesh mesh = GltfReader.ReadMesh(stream);
+
+        Assert.Equal(Positions, mesh.Positions.ToArray());
+        Assert.Equal(Normals, mesh.Normals.ToArray());
+        Assert.Equal(new[] { 0, 1, 2 }, mesh.Indices.ToArray());
+    }
+
+    [Fact]
     public void ReadUvMesh_WithoutTangent_ReturnsNullShipped_AndComputesNormals()
     {
         byte[] glb = BuildGlb(Positions, normals: null, Uvs, tangents: null, Indices);

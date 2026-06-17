@@ -40,3 +40,6 @@ Thumbs.db
 
 # Claude Code personal/local settings (shared .claude/settings.json may be committed)
 .claude/settings.local.json
+
+# Local end-to-end scratch (downloaded assets, generated meshes, ad-hoc bakes)
+_e2e/

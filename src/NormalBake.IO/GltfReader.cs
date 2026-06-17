@@ -18,6 +18,34 @@ public static class GltfReader
     private const uint ChunkJson = 0x4E4F534A;    // "JSON"
     private const uint ChunkBin = 0x004E4942;     // "BIN\0"
 
+    /// <summary>Reads a high-poly <see cref="Mesh"/> (positions + normals + indices) from a <c>.glb</c> file; UVs ignored.</summary>
+    public static Mesh ReadMesh(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        using var stream = File.OpenRead(path);
+        return ReadMesh(stream);
+    }
+
+    /// <summary>Reads a high-poly <see cref="Mesh"/> from a <c>.glb</c> stream. Normals are computed if absent.</summary>
+    public static Mesh ReadMesh(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        (byte[] json, byte[] bin) = ReadGlb(stream);
+        using JsonDocument doc = JsonDocument.Parse(json);
+        JsonElement root = doc.RootElement;
+
+        JsonElement primitive = FindPrimitive(root);
+        JsonElement attributes = primitive.GetProperty("attributes");
+        Vector3[] positions = ReadVec3(root, bin, attributes.GetProperty("POSITION").GetInt32());
+        int[] indices = primitive.TryGetProperty("indices", out JsonElement idx)
+            ? ReadIndices(root, bin, idx.GetInt32())
+            : Sequential(positions.Length);
+        Vector3[] normals = attributes.TryGetProperty("NORMAL", out JsonElement nrm)
+            ? ReadVec3(root, bin, nrm.GetInt32())
+            : MeshNormals.ComputeSmooth(positions, indices);
+        return new Mesh(positions, normals, indices);
+    }
+
     /// <summary>Reads the first UV-bearing primitive from a <c>.glb</c> file.</summary>
     public static UvMesh ReadUvMesh(string path, out Vector4[]? shippedTangents)
     {
@@ -78,6 +106,22 @@ public static class GltfReader
         }
 
         return fallback ?? throw new InvalidDataException("glTF has no primitive with POSITION + TEXCOORD_0.");
+    }
+
+    private static JsonElement FindPrimitive(JsonElement root)
+    {
+        foreach (JsonElement mesh in root.GetProperty("meshes").EnumerateArray())
+        {
+            foreach (JsonElement prim in mesh.GetProperty("primitives").EnumerateArray())
+            {
+                if (prim.TryGetProperty("attributes", out JsonElement attr) && attr.TryGetProperty("POSITION", out _))
+                {
+                    return prim;
+                }
+            }
+        }
+
+        throw new InvalidDataException("glTF has no primitive with POSITION.");
     }
 
     private static (byte[] Json, byte[] Bin) ReadGlb(Stream stream)

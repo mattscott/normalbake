@@ -40,8 +40,8 @@ internal static class Program
 
     private static void Run(Config config)
     {
-        Mesh high = ObjReader.ReadMesh(config.High);
-        UvMesh low = ObjReader.ReadUvMesh(config.Low);
+        Mesh high = ReadHigh(config.High);
+        UvMesh low = ReadLow(config.Low);
         BakedMap map = NormalBaker.Bake(high, low, config.Options);
 
         string ext = Path.GetExtension(config.Output).ToLowerInvariant();
@@ -55,6 +55,18 @@ internal static class Program
         Console.WriteLine(
             $"baked {config.Options.Resolution}x{config.Options.Resolution} {config.Options.Map} map "
             + $"({format}) → {config.Output}");
+    }
+
+    private static Mesh ReadHigh(string path) =>
+        IsGltf(path) ? GltfReader.ReadMesh(path) : ObjReader.ReadMesh(path);
+
+    private static UvMesh ReadLow(string path) =>
+        IsGltf(path) ? GltfReader.ReadUvMesh(path, out _) : ObjReader.ReadUvMesh(path);
+
+    private static bool IsGltf(string path)
+    {
+        string ext = Path.GetExtension(path).ToLowerInvariant();
+        return ext is ".glb" or ".gltf";
     }
 
     private static string WritePng(Config config, BakedMap map)
@@ -91,6 +103,8 @@ internal static class Program
         var map = MapType.Normal;
         int occlusionSamples = 32;
         int threads = -1;
+        int tileU = 0;
+        int tileV = 0;
         bool fallback = true;
         bool bc7 = false;
 
@@ -110,6 +124,12 @@ internal static class Program
                     break;
                 case "--threads":
                     threads = ParseInt(Next(args, ref i), "--threads");
+                    break;
+                case "--tile-u":
+                    tileU = ParseInt(Next(args, ref i), "--tile-u");
+                    break;
+                case "--tile-v":
+                    tileV = ParseInt(Next(args, ref i), "--tile-v");
                     break;
                 case "--space":
                     space = ParseSpace(Next(args, ref i));
@@ -171,6 +191,8 @@ internal static class Program
             Map = map,
             OcclusionSamples = occlusionSamples,
             Threads = threads,
+            TileU = tileU,
+            TileV = tileV,
             NearestPointFallback = fallback,
         };
         return new Config(high, low, output, options, bc7);
@@ -248,7 +270,7 @@ internal static class Program
         var d = new NormalBakeOptions();
         Console.WriteLine("normalbake — bake a normal map from a high-poly mesh into a low-poly's UV space");
         Console.WriteLine();
-        Console.WriteLine("usage: normalbake <high.obj> <low.obj> -o <out.png> [options]");
+        Console.WriteLine("usage: normalbake <high.obj|.glb> <low.obj|.glb> -o <out.png> [options]");
         Console.WriteLine();
         Console.WriteLine("The low-poly must already have UVs (produced by a separate UV-unwrap tool).");
         Console.WriteLine();
@@ -262,6 +284,7 @@ internal static class Program
         Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");
         Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
         Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");
+        Console.WriteLine($"  --tile-u/--tile-v <n>   UDIM tile to bake (shift UVs into 0-1; default 0)");
         Console.WriteLine($"  --frontal <d>           outer cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --rear <d>              inner cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --no-fallback           don't fill cage misses from the nearest surface point");
