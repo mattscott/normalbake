@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>NormalBake.IO</RootNamespace>
+    <AssemblyName>NormalBake.IO</AssemblyName>
+    <Description>Mesh readers/writers (OBJ first) and image writers (PNG first) for NormalBake.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NormalBake.Core\NormalBake.Core.csproj" />
+  </ItemGroup>
+
+</Project>

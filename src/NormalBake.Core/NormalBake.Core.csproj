@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>NormalBake.Core</RootNamespace>
+    <AssemblyName>NormalBake.Core</AssemblyName>
+    <Description>Normal-map baker (projection ray-cast + MikkTSpace tangents + managed BVH) — managed, dependency-light.</Description>
+    <!-- Core keeps a dependency-light runtime graph (see Agents/Documents/08). -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="NormalBake.Tests" />
+  </ItemGroup>
+
+</Project>

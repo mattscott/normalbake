@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>NormalBake.Cli</RootNamespace>
+    <AssemblyName>normalbake</AssemblyName>
+    <Description>Command-line front-end for the NormalBake library.</Description>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NormalBake.Core\NormalBake.Core.csproj" />
+    <ProjectReference Include="..\NormalBake.IO\NormalBake.IO.csproj" />
+  </ItemGroup>
+
+</Project>
