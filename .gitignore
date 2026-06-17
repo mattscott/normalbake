@@ -43,3 +43,6 @@ Thumbs.db
 
 # Local end-to-end scratch (downloaded assets, generated meshes, ad-hoc bakes)
 _e2e/
+
+# Local FBX test assets (hand-authored game meshes; kept local, not committed)
+Assets/

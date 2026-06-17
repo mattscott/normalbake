@@ -46,9 +46,11 @@ per phase (Agents/Plans/02-phase-roadmap.md) and listed here as they land:
   BCnEncoder.NET   BC5/BC7 + DDS encode/decode  (MIT OR Unlicense)
                    (pulls CommunityToolkit.HighPerformance, MIT)
 
-The PNG and OpenEXR writers and the OBJ/glTF readers are hand-rolled in
+The PNG and OpenEXR writers and the OBJ/glTF/FBX readers are hand-rolled in
 NormalBake.IO (no dependency); the float EXR writer fills in for Jither.OpenEXR,
-which is not published on NuGet.
+which is not published on NuGet. The binary FBX reader is clean-room — it parses
+the documented Kaydara/Autodesk binary record format (no Autodesk FBX SDK, no
+native code); array decompression uses the framework's System.IO.Compression.
 
 ImageSharp is deliberately avoided (Six Labors Split License) to keep the
 dependency graph unconditionally permissive.

@@ -191,10 +191,11 @@ public static class UvContract
                 double measuredOut = minGapV / scale;
                 double requiredOut = requiredGutterV / scale;
                 issues.Add(new UvValidationIssue(
-                    UvValidationSeverity.Error,
+                    UvValidationSeverity.Warning,
                     "UV.Gutter",
-                    $"the narrowest gap between UV islands is ≈{measuredOut:0.#} texels, below the required "
-                    + $"{requiredOut:0.#} (2× the {padOut}px padding at {outRes}px); spread the islands apart."));
+                    $"the narrowest gap between UV islands is ≈{measuredOut:0.#} texels, below the recommended "
+                    + $"{requiredOut:0.#} (2× the {padOut}px padding at {outRes}px); dilation mitigates it, but "
+                    + "wider gutters reduce mip-bleed. Spread the islands apart for best quality."));
             }
         }
     }

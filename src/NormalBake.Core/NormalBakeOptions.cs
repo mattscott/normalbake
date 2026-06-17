@@ -94,6 +94,13 @@ public sealed class NormalBakeOptions
     /// <summary>When a cage ray finds no hit, sample the nearest high-poly surface point instead (fills holes).</summary>
     public bool NearestPointFallback { get; init; } = true;
 
+    /// <summary>
+    /// When true (default), a UV-contract error (e.g. overlapping islands) aborts the bake. Set false to
+    /// bake anyway — needed for intentionally <b>mirrored/stacked UVs</b>, where symmetric parts share UV
+    /// space (the handedness <c>w</c> keeps the mirror correct).
+    /// </summary>
+    public bool StrictUvValidation { get; init; } = true;
+
     /// <summary>UDIM tile column to bake: UVs are shifted by −<see cref="TileU"/> in U into the 0–1 output.</summary>
     public int TileU { get; init; }
 

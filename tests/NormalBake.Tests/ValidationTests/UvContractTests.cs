@@ -53,8 +53,8 @@ public class UvContractTests
 
         UvValidationResult result = UvContract.Validate(low);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Issues, i => i.Code == "UV.Gutter" && i.Severity == UvValidationSeverity.Error);
+        // Tight gutters are a mip-bleed quality warning (dilation mitigates), not a bake-correctness error.
+        Assert.Contains(result.Issues, i => i.Code == "UV.Gutter" && i.Severity == UvValidationSeverity.Warning);
     }
 
     [Fact]

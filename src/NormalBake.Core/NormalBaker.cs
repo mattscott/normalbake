@@ -39,7 +39,10 @@ public static class NormalBaker
         ArgumentNullException.ThrowIfNull(options);
 
         cancellationToken.ThrowIfCancellationRequested();
-        UvContract.ValidateOrThrow(lowPoly, new UvValidationOptions { Resolution = options.Resolution });
+        if (options.StrictUvValidation)
+        {
+            UvContract.ValidateOrThrow(lowPoly, new UvValidationOptions { Resolution = options.Resolution });
+        }
         progress?.Report(0.05f);
 
         int res = options.Resolution;
@@ -80,7 +83,11 @@ public static class NormalBaker
         for (int p = 0; p < parts.Count; p++)
         {
             BakePart part = parts[p];
-            UvContract.ValidateOrThrow(part.Low, new UvValidationOptions { Resolution = res });
+            if (options.StrictUvValidation)
+            {
+                UvContract.ValidateOrThrow(part.Low, new UvValidationOptions { Resolution = res });
+            }
+
             Accumulate(
                 part.High, part.Low, options, accum, coverage, IdColor(p), bounds, null, 0f, 0f, cancellationToken);
         }

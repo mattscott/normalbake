@@ -41,7 +41,7 @@ internal static class Program
     private static void Run(Config config)
     {
         Mesh high = ReadHigh(config.High);
-        UvMesh low = ReadLow(config.Low);
+        UvMesh low = ReadLow(config.Low, config.Part);
         BakedMap map = NormalBaker.Bake(high, low, config.Options);
 
         string ext = Path.GetExtension(config.Output).ToLowerInvariant();
@@ -57,17 +57,35 @@ internal static class Program
             + $"({format}) → {config.Output}");
     }
 
-    private static Mesh ReadHigh(string path) =>
-        IsGltf(path) ? GltfReader.ReadMesh(path) : ObjReader.ReadMesh(path);
-
-    private static UvMesh ReadLow(string path) =>
-        IsGltf(path) ? GltfReader.ReadUvMesh(path, out _) : ObjReader.ReadUvMesh(path);
-
-    private static bool IsGltf(string path)
+    private static Mesh ReadHigh(string path) => Ext(path) switch
     {
-        string ext = Path.GetExtension(path).ToLowerInvariant();
-        return ext is ".glb" or ".gltf";
+        ".fbx" => FbxReader.ReadMesh(path),
+        ".glb" or ".gltf" => GltfReader.ReadMesh(path),
+        _ => ObjReader.ReadMesh(path),
+    };
+
+    private static UvMesh ReadLow(string path, int part)
+    {
+        if (part >= 0 && Ext(path) == ".fbx")
+        {
+            IReadOnlyList<FbxPart> parts = FbxReader.ReadParts(path);
+            if (part >= parts.Count)
+            {
+                throw new ArgumentException($"--part {part} out of range (the file has {parts.Count} parts).");
+            }
+
+            return parts[part].ToUvMesh();
+        }
+
+        return Ext(path) switch
+        {
+            ".fbx" => FbxReader.ReadUvMesh(path),
+            ".glb" or ".gltf" => GltfReader.ReadUvMesh(path, out _),
+            _ => ObjReader.ReadUvMesh(path),
+        };
     }
+
+    private static string Ext(string path) => Path.GetExtension(path).ToLowerInvariant();
 
     private static string WritePng(Config config, BakedMap map)
     {
@@ -105,7 +123,9 @@ internal static class Program
         int threads = -1;
         int tileU = 0;
         int tileV = 0;
+        int part = -1;
         bool fallback = true;
+        bool lenient = false;
         bool bc7 = false;
 
         for (int i = 0; i < args.Length; i++)
@@ -131,11 +151,17 @@ internal static class Program
                 case "--tile-v":
                     tileV = ParseInt(Next(args, ref i), "--tile-v");
                     break;
+                case "--part":
+                    part = ParseInt(Next(args, ref i), "--part");
+                    break;
                 case "--space":
                     space = ParseSpace(Next(args, ref i));
                     break;
                 case "--no-fallback":
                     fallback = false;
+                    break;
+                case "--lenient":
+                    lenient = true;
                     break;
                 case "--bc7":
                     bc7 = true;
@@ -194,8 +220,9 @@ internal static class Program
             TileU = tileU,
             TileV = tileV,
             NearestPointFallback = fallback,
+            StrictUvValidation = !lenient,
         };
-        return new Config(high, low, output, options, bc7);
+        return new Config(high, low, output, options, bc7, part);
     }
 
     private static MapType ParseMap(string value) => value.ToLowerInvariant() switch
@@ -270,7 +297,7 @@ internal static class Program
         var d = new NormalBakeOptions();
         Console.WriteLine("normalbake — bake a normal map from a high-poly mesh into a low-poly's UV space");
         Console.WriteLine();
-        Console.WriteLine("usage: normalbake <high.obj|.glb> <low.obj|.glb> -o <out.png> [options]");
+        Console.WriteLine("usage: normalbake <high.obj|.glb|.fbx> <low.obj|.glb|.fbx> -o <out.png> [options]");
         Console.WriteLine();
         Console.WriteLine("The low-poly must already have UVs (produced by a separate UV-unwrap tool).");
         Console.WriteLine();
@@ -285,13 +312,16 @@ internal static class Program
         Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
         Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");
         Console.WriteLine($"  --tile-u/--tile-v <n>   UDIM tile to bake (shift UVs into 0-1; default 0)");
+        Console.WriteLine($"  --part <i>              bake only FBX low-poly part i against the full high (default all)");
         Console.WriteLine($"  --frontal <d>           outer cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --rear <d>              inner cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --no-fallback           don't fill cage misses from the nearest surface point");
+        Console.WriteLine($"  --lenient               bake despite UV-contract errors (e.g. mirrored/stacked UVs)");
         Console.WriteLine($"  --bc7                   use BC7 instead of BC5 for .dds output");
         Console.WriteLine();
         Console.WriteLine("output format is chosen by extension: .png (default), .dds (BC5/BC7), .exr (float).");
     }
 
-    private sealed record Config(string High, string Low, string Output, NormalBakeOptions Options, bool Bc7);
+    private sealed record Config(
+        string High, string Low, string Output, NormalBakeOptions Options, bool Bc7, int Part);
 }
