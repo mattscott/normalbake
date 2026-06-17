@@ -3,10 +3,11 @@ using System.Numerics;
 namespace NormalBake.Core;
 
 /// <summary>
-/// A fixed, cosine-weighted hemisphere direction set for AO / thickness / bent-normal sampling. The
-/// directions come from the deterministic Hammersley sequence (no RNG), so bakes stay bit-reproducible
-/// (the determinism rule, <c>Agents/Plans/01-architecture.md</c>). Local directions are around +Z;
-/// rotate them into a surface frame with <see cref="ToFrame"/>.
+/// A fixed, cosine-weighted hemisphere direction set (local, around +Z) for AO / thickness / bent-normal
+/// sampling. The directions come from the deterministic Hammersley sequence (no RNG), so bakes stay
+/// bit-reproducible (the determinism rule, <c>Agents/Plans/01-architecture.md</c>). The caller builds a
+/// surface frame — <b>rotated per texel</b> — and combines it with <see cref="Local"/> to avoid the
+/// banding a shared, un-rotated sample set produces.
 /// </summary>
 internal sealed class Hemisphere
 {
@@ -28,15 +29,8 @@ internal sealed class Hemisphere
 
     public int Count => _local.Length;
 
-    /// <summary>Rotates local hemisphere sample <paramref name="i"/> into the frame whose axis is <paramref name="n"/>.</summary>
-    public Vector3 ToFrame(int i, Vector3 n)
-    {
-        Vector3 up = MathF.Abs(n.Z) < 0.99f ? Vector3.UnitZ : Vector3.UnitX;
-        Vector3 t = Vector3.Normalize(Vector3.Cross(up, n));
-        Vector3 b = Vector3.Cross(n, t);
-        Vector3 d = _local[i];
-        return (d.X * t) + (d.Y * b) + (d.Z * n);
-    }
+    /// <summary>The i-th local hemisphere direction (around +Z).</summary>
+    public Vector3 Local(int i) => _local[i];
 
     private static float RadicalInverseBase2(int i)
     {

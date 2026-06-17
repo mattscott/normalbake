@@ -147,6 +147,49 @@ public class MapTypeTests
     }
 
     [Fact]
+    public void Blur_ReducesNeighbourVariance_WithinCoverage()
+    {
+        const int res = 32;
+        var map = new BakedMap(res, res);
+        var covered = new bool[res * res];
+        for (int y = 0; y < res; y++)
+        {
+            for (int x = 0; x < res; x++)
+            {
+                covered[(y * res) + x] = true;
+                float v = (x + y) % 2 == 0 ? 1f : 0f; // worst-case high-frequency checkerboard
+                map.SetPixel(x, y, v, v, v);
+            }
+        }
+
+        float before = NeighbourRoughness(map, covered);
+        Blur.Apply(map, covered, radius: 2);
+        float after = NeighbourRoughness(map, covered);
+
+        Assert.True(after < before * 0.5f, $"blur should smooth ({before:0.###} -> {after:0.###})");
+    }
+
+    private static float NeighbourRoughness(BakedMap map, bool[] mask)
+    {
+        double sum = 0;
+        int n = 0;
+        for (int y = 0; y < map.Height; y++)
+        {
+            for (int x = 0; x + 1 < map.Width; x++)
+            {
+                int i = (y * map.Width) + x;
+                if (mask[i] && mask[i + 1])
+                {
+                    sum += Math.Abs(map.GetPixel(x, y).R - map.GetPixel(x + 1, y).R);
+                    n++;
+                }
+            }
+        }
+
+        return n > 0 ? (float)(sum / n) : 0f;
+    }
+
+    [Fact]
     public void Coverage_HasAntiAliasedEdges()
     {
         MeshPair pair = Primitives.Box();

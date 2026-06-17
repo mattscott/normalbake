@@ -94,6 +94,9 @@ public sealed class NormalBakeOptions
     /// <summary>Hemisphere ray count for AO / thickness / bent-normal maps.</summary>
     public int OcclusionSamples { get; init; } = 32;
 
+    /// <summary>Post-bake coverage-aware Gaussian blur radius in texels (0 = off). Smooths AO/curvature.</summary>
+    public int BlurRadius { get; init; }
+
     /// <summary>Maximum occlusion ray distance (model units); 0 auto-derives from the bounds.</summary>
     public double OcclusionRadius { get; init; }
 

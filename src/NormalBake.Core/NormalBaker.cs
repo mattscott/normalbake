@@ -204,6 +204,12 @@ public static class NormalBaker
             }
         }
 
+        // Coverage-aware smoothing (AO/curvature/etc.) — before dilation, and never on the crisp maps.
+        if (options.BlurRadius > 0 && options.Map is not (MapType.Mask or MapType.Coverage or MapType.ObjectId))
+        {
+            Blur.Apply(map, covered, options.BlurRadius);
+        }
+
         if (options.Map is not (MapType.Mask or MapType.Coverage))
         {
             Dilation.Extend(map, covered); // mask/coverage keep a black background to isolate the surface
@@ -514,7 +520,18 @@ public static class NormalBaker
                                 continue;
                             }
 
-                            if (TrySampleValue(i0, i1, i2, a, b, c, w, out Vector3 value))
+                            // Per-sample hemisphere rotation (AO/thickness): turns banding into noise that
+                            // supersampling and the optional blur smooth out. Deterministic (no RNG).
+                            float cosR = 1f;
+                            float sinR = 0f;
+                            if (_map is MapType.AmbientOcclusion or MapType.Thickness)
+                            {
+                                float angle = Ign((px * _samples) + sx, (py * _samples) + sy) * (2f * MathF.PI);
+                                cosR = MathF.Cos(angle);
+                                sinR = MathF.Sin(angle);
+                            }
+
+                            if (TrySampleValue(i0, i1, i2, a, b, c, w, cosR, sinR, out Vector3 value))
                             {
                                 int idx = (py * _res) + px;
                                 accum[idx] += value;
@@ -526,7 +543,8 @@ public static class NormalBaker
             }
         }
 
-        private bool TrySampleValue(int i0, int i1, int i2, float a, float b, float c, float w, out Vector3 value)
+        private bool TrySampleValue(
+            int i0, int i1, int i2, float a, float b, float c, float w, float cosR, float sinR, out Vector3 value)
         {
             value = default;
             Vector3 p = (a * _loPos[i0]) + (b * _loPos[i1]) + (c * _loPos[i2]);
@@ -542,10 +560,10 @@ public static class NormalBaker
                     value = Vector3.One; // one per supersample on surface; Resolve turns counts into the mask
                     return true;
                 case MapType.AmbientOcclusion:
-                    value = Broadcast(AmbientOcclusion(p, n));
+                    value = Broadcast(AmbientOcclusion(p, n, cosR, sinR));
                     return true;
                 case MapType.Thickness:
-                    value = Broadcast(Thickness(p, n));
+                    value = Broadcast(Thickness(p, n, cosR, sinR));
                     return true;
                 default:
                     break;
@@ -594,13 +612,16 @@ public static class NormalBaker
             return true;
         }
 
-        private float AmbientOcclusion(Vector3 p, Vector3 n)
+        private float AmbientOcclusion(Vector3 p, Vector3 n, float cosR, float sinR)
         {
+            RotatedFrame(n, cosR, sinR, out Vector3 t, out Vector3 b);
             Vector3 origin = p + (n * _occBias);
             int occluded = 0;
             for (int k = 0; k < _hemi.Count; k++)
             {
-                if (_bvh.AnyHit(new Ray(origin, _hemi.ToFrame(k, n), _occRadius)))
+                Vector3 d = _hemi.Local(k);
+                Vector3 dir = (d.X * t) + (d.Y * b) + (d.Z * n);
+                if (_bvh.AnyHit(new Ray(origin, dir, _occRadius)))
                 {
                     occluded++;
                 }
@@ -609,17 +630,38 @@ public static class NormalBaker
             return 1f - (occluded / (float)_hemi.Count);
         }
 
-        private float Thickness(Vector3 p, Vector3 n)
+        private float Thickness(Vector3 p, Vector3 n, float cosR, float sinR)
         {
+            Vector3 axis = -n; // sample into the solid
+            RotatedFrame(axis, cosR, sinR, out Vector3 t, out Vector3 b);
             Vector3 origin = p - (n * _occBias);
             float sum = 0f;
             for (int k = 0; k < _hemi.Count; k++)
             {
-                Vector3 dir = _hemi.ToFrame(k, -n); // into the solid
+                Vector3 d = _hemi.Local(k);
+                Vector3 dir = (d.X * t) + (d.Y * b) + (d.Z * axis);
                 sum += _bvh.ClosestHit(new Ray(origin, dir, _occRadius), out Hit hit) ? hit.T : _occRadius;
             }
 
             return (sum / _hemi.Count) / _occRadius;
+        }
+
+        private static void RotatedFrame(Vector3 axis, float cosR, float sinR, out Vector3 t, out Vector3 b)
+        {
+            Vector3 up = MathF.Abs(axis.Z) < 0.99f ? Vector3.UnitZ : Vector3.UnitX;
+            Vector3 t0 = Vector3.Normalize(Vector3.Cross(up, axis));
+            Vector3 b0 = Vector3.Cross(axis, t0);
+            t = (t0 * cosR) + (b0 * sinR); // rotate the basis around the axis by the per-texel angle
+            b = (b0 * cosR) - (t0 * sinR);
+        }
+
+        private static float Ign(float x, float y)
+        {
+            // Interleaved gradient noise — a cheap, deterministic per-pixel value in [0,1).
+            float v = (0.06711056f * x) + (0.00583715f * y);
+            v -= MathF.Floor(v);
+            v *= 52.9829189f;
+            return v - MathF.Floor(v);
         }
 
         private static Vector3 Broadcast(float s) => new(s, s, s);

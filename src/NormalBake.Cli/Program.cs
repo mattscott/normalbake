@@ -120,6 +120,7 @@ internal static class Program
         var space = NormalSpace.Tangent;
         var map = MapType.Normal;
         int occlusionSamples = 32;
+        int blurRadius = 0;
         int threads = -1;
         int tileU = 0;
         int tileV = 0;
@@ -141,6 +142,9 @@ internal static class Program
                     break;
                 case "--occ-samples":
                     occlusionSamples = ParseInt(Next(args, ref i), "--occ-samples");
+                    break;
+                case "--blur":
+                    blurRadius = ParseInt(Next(args, ref i), "--blur");
                     break;
                 case "--threads":
                     threads = ParseInt(Next(args, ref i), "--threads");
@@ -216,6 +220,7 @@ internal static class Program
             Space = space,
             Map = map,
             OcclusionSamples = occlusionSamples,
+            BlurRadius = blurRadius,
             Threads = threads,
             TileU = tileU,
             TileV = tileV,
@@ -314,6 +319,7 @@ internal static class Program
         Console.WriteLine($"  --map <type>            normal|position|ao|thickness|curvature|id|mask|coverage (default {d.Map})");
         Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");
         Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
+        Console.WriteLine($"  --blur <px>             coverage-aware smoothing radius for ao/curvature (default 0)");
         Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");
         Console.WriteLine($"  --tile-u/--tile-v <n>   UDIM tile to bake (shift UVs into 0-1; default 0)");
         Console.WriteLine($"  --part <i>              bake only FBX low-poly part i against the full high (default all)");
