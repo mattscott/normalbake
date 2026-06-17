@@ -176,7 +176,7 @@ public static class Primitives
         var idx = new List<int>();
         int n = subdivisions;
         float inner = s - radius;
-        foreach ((Vector3 _, Vector3 a, Vector3 b, Vector3 d, Vector3 _) in CubeFaces)
+        foreach ((Vector3 _, Vector3 a, Vector3 b, Vector3 _, Vector3 d) in CubeFaces)
         {
             Vector3 origin = a * s;
             Vector3 du = (b - a) * s; // edge A→B
