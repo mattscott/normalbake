@@ -9,7 +9,7 @@ the *opposite* of a real-time renderer: **spend the budget on traversal quality 
 layout, not on build speed.**
 
 Everything here is implementable in **pure managed C#** with `System.Runtime.Intrinsics` — no native
-dependency, matching NormalBake's (and Quadremesh's) stance.
+dependency, matching NormalBake's stance.
 
 ## 1. The BVH
 
@@ -106,10 +106,10 @@ variance) — a poor fit for a cross-platform, zero-native, golden-tested tool. 
 correct default:** portable, dependency-light, deterministic, CI-friendly. Offer GPU later as an
 optional accelerator behind a flag, never as a core dependency.
 
-## 6. Determinism (a hard requirement, inherited from Quadremesh)
+## 6. Determinism (a hard requirement)
 
 - **CPU, fixed accumulation order.** Pin per-thread reduction order or accumulate in a fixed order so
-  supersample averaging is bit-reproducible — the same discipline Quadremesh uses for bit-exact flow.
+  supersample averaging is bit-reproducible.
 - **Fix every variance source:** sample pattern/seed, supersample grid, cage params, tangent basis
   (MikkTSpace), and normal-map convention (OpenGL/DirectX). These feed the golden-image tests in
   [`08`](08-prior-art-tools-and-libraries.md) §5 and [`07`](07-quality-artifacts-and-aa.md).
@@ -120,8 +120,7 @@ optional accelerator behind a flag, never as a core dependency.
 - `System.Runtime.Intrinsics` — `Vector128/256/512<T>` plus `System.Runtime.Intrinsics.X86`
   (`Sse`, `Sse2`, `Sse41`, `Avx`, `Avx2`, `Avx512F`, `Fma`) and `.Arm` (`AdvSimd` NEON) for explicit
   4/8/16-wide node tests with **runtime ISA dispatch** — the managed analogue of Embree's runtime ISA
-  selection.[^dotnet-intrin] This is the same toolchain Quadremesh's faithful integer back-end already
-  uses; it extends directly to a BVH.
+  selection.[^dotnet-intrin]
 
 ---
 

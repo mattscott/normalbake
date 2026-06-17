@@ -121,8 +121,8 @@ must be plainly marked as such … 3. This notice may not be removed or altered.
 
 For a pure-C# project you may **port the algorithm** (keeping the notice and not misrepresenting
 origin) or call a managed reimplementation; the zlib terms permit both, and this is compatible with
-NormalBake's MIT-clean stance. A faithful C# port (validated against the C reference's output, the way
-Quadremesh validates against QuadriFlow) is the recommended path — it keeps the "no native deps" rule.
+NormalBake's MIT-clean stance. A faithful C# port (validated against the C reference's output) is the
+recommended path — it keeps the "no native deps" rule.
 
 ## 5. Checklist
 

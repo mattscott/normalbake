@@ -1,8 +1,8 @@
 # NormalBake
 
-A permissively-licensed, dependency-light, cross-platform **managed-C# (.NET 8)** library + CLI that
-bakes a **normal map** from a high-resolution mesh into the UV space of a low-resolution
-(quad-remeshed) mesh — the baking partner to [Quadremesh](https://github.com/mattscott/Quadremesh).
+A standalone, permissively-licensed, dependency-light, cross-platform **managed-C# (.NET 8)** library +
+CLI that bakes a **normal map** from a high-resolution mesh into the UV space of a low-resolution
+(quad-remeshed) mesh.
 
 It is a **clean-room** implementation: the projection bake (Cignoni et al. 1998), a
 MikkTSpace-faithful tangent basis, and a managed BVH ray tracer — **no native dependencies**,
@@ -14,10 +14,11 @@ MIT-clean.
 
 ## Pipeline
 
-NormalBake is the **baking** stage of a three-tool chain (the UV unwrap is a separate sister project):
+NormalBake is the **baking** stage of a three-tool chain (the upstream remesh and UV unwrap are
+separate tools):
 
 ```
-Quadremesh (retopology) ─► UV-unwrap tool (sister) ─► NormalBake (this tool) ─► normal map
+quad-remesher (retopology) ─► UV-unwrap tool ─► NormalBake (this tool) ─► normal map
 ```
 
 The low-poly **must already carry UVs**; NormalBake validates them and bakes the high-poly's surface

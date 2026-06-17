@@ -1,8 +1,7 @@
 # NormalBake — Project Overview & Research Index
 
 > **Status: research / pre-scaffold.** This directory holds the background research the tool
-> will be built on, mirroring how the sister project [Quadremesh](../../../Quadremesh) keeps its
-> research in `Agents/Docs` and its roadmap in `Agents/Plans`.
+> will be built on. The implementation roadmap lives in [`../Plans`](../Plans).
 
 ## 1. What NormalBake is
 
@@ -12,24 +11,23 @@ low-poly's **UV space**. The low-poly then *renders* as if it had the high-poly'
 tiny fraction of the triangle count.
 
 This is the standard "high-to-low" or "detail transfer" bake used throughout games and real-time
-3D. NormalBake is the **baking** stage of a three-tool pipeline — a **separate sister project** does
+3D. NormalBake is the **baking** stage of a three-tool pipeline — a **separate UV-unwrap tool** does
 the UV unwrap, so NormalBake assumes the low-poly already carries UVs:
 
 ```
-  high-poly  ──►  Quadremesh    ──►  UV-unwrap tool   ──►  NormalBake   ──►  normal map (+ AO, curvature, …)
-  (sculpt)        (retopology)       (sister project)      (this tool)
+  high-poly  ──►  quad-remesher ──►  UV-unwrap tool   ──►  NormalBake   ──►  normal map (+ AO, curvature, …)
+  (sculpt)        (retopology)       (separate tool)       (this tool)
                   clean quad LP      LP + UVs              bakes HP detail into the LP's UV map
        │                                                        ▲
        └──────────────────────────  high-poly  ─────────────────┘
 ```
 
-Quadremesh answers *"what is the clean low-poly?"* NormalBake answers *"how do I make that
+The quad-remesher answers *"what is the clean low-poly?"* NormalBake answers *"how do I make that
 low-poly look like the original?"*
 
-## 2. Design philosophy (inherited from Quadremesh)
+## 2. Design philosophy
 
-NormalBake deliberately copies Quadremesh's engineering stance so the two tools feel like one
-toolchain:
+NormalBake holds to a deliberate engineering stance:
 
 | Principle | Consequence for NormalBake |
 |---|---|
@@ -37,7 +35,7 @@ toolchain:
 | **Dependency-light, no native deps** | The ray-tracing BVH, tangent basis, rasterizer, and image I/O are implemented in-repo or via pure-managed packages — no Embree/native DLLs. |
 | **MIT/BSD-clean, clean-room** | Algorithms reimplemented from papers and public docs; reference tools used only to *generate golden outputs*, never linked or copied. |
 | **Library + CLI** | `NormalBake.Core` (engine) + `NormalBake.Cli` (`normalbake high.obj low.obj -o normal.png …`). |
-| **Deterministic, golden-tested** | A reference baker (candidate: **xNormal** or headless **Blender**) plays the role QuadriFlow plays for Quadremesh — it produces golden images we validate against with a per-pixel / SSIM tolerance. |
+| **Deterministic, golden-tested** | A reference baker (candidate: headless **Blender**, with **xNormal** as a cross-check) produces golden images we validate against with a per-pixel / SSIM tolerance. |
 
 See [`09-architecture-and-roadmap.md`](09-architecture-and-roadmap.md) for the proposed module
 layout and MVP plan.
@@ -75,7 +73,7 @@ thickness, and object/material ID maps — these reuse the exact same ray-cast i
 are cheap to add once the core works. See the roadmap.
 
 **Explicitly out of scope:** UV *unwrapping* — NormalBake **requires the low-poly to arrive already
-UV-unwrapped**, produced by a **separate sister project** (see
+UV-unwrapped**, produced by a **separate UV-unwrap tool** (see
 [`05-uvs-and-dilation.md`](05-uvs-and-dilation.md)); GPU baking; displacement/height as a primary
 deliverable; in-app skew painting UI.
 
@@ -97,7 +95,7 @@ deliverable; in-app skew painting UI.
 ## 7. Glossary
 
 - **High-poly (HP):** the detailed source mesh (sculpt, scan, CAD) — millions of triangles, no UVs needed.
-- **Low-poly (LP):** the simplified render mesh — Quadremesh's output; **must have UVs** to be baked onto.
+- **Low-poly (LP):** the simplified render mesh — the quad-remesher's output; **must have UVs** to be baked onto.
 - **Normal map:** RGB texture encoding per-texel surface normals. **Tangent-space** = relative to the
   surface's local TBN frame (deformable, the default); **object-space** = relative to the model origin.
 - **TBN / tangent frame:** the orthonormal-ish basis (**T**angent, **B**itangent, **N**ormal) at a
@@ -111,5 +109,4 @@ deliverable; in-app skew painting UI.
 - **Texel density:** texture pixels per unit of model surface area; governs how much detail the map can hold.
 - **MikkTSpace:** Morten Mikkelsen's standard algorithm/convention for computing tangent bases so
   that bakers and renderers agree.
-- **Oracle / golden:** a trusted reference baker whose outputs we diff against in tests (as
-  QuadriFlow is to Quadremesh).
+- **Oracle / golden:** a trusted reference baker whose outputs we diff against in tests.

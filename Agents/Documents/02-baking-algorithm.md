@@ -12,7 +12,7 @@ low-poly's normals.[^blender-bake]
 ## 1. Inputs and outputs
 
 **Inputs**
-- `lowMesh` — the low-poly (Quadremesh output), **triangulated**, with positions, vertex normals,
+- `lowMesh` — the low-poly (quad-remesher output), **triangulated**, with positions, vertex normals,
   **UVs**, and **per-vertex tangents** with a handedness sign `w` (see
   [`03-tangent-space-and-mikktspace.md`](03-tangent-space-and-mikktspace.md)).
 - `highMesh` — the high-poly, with positions and **smooth (interpolated vertex) normals**, indexed
@@ -121,7 +121,7 @@ recover a unique 3D surface point and tangent frame.[^learnopengl] Interpolate
 `P = α·P0+β·P1+γ·P2`, and likewise `N`, `T`, and `UV`.
 
 ### Quad faces → triangles
-GPUs and ray casters work on triangles, so quad low-poly faces (Quadremesh's native output) are split
+GPUs and ray casters work on triangles, so quad low-poly faces (the quad-remesher's native output) are split
 into two triangles before rasterization **and** before the tangent solve. The split rule matters:
 **MikkTSpace splits quads along the shortest diagonal, consistently**, because that choice is
 order-independent and mirror-safe.[^mikk-header] If NormalBake triangulates differently from the
@@ -144,7 +144,7 @@ to the tangent solver and the rasterizer.**
 - The per-texel work is embarrassingly parallel — partition texels (or triangles) across threads;
   the BVH is read-only during the pass.
 - Keep an explicit **coverage mask** so the dilation pass knows real texels from background.
-- Determinism (a Quadremesh requirement) means fixed sample patterns and a stable triangle/texel
+- Determinism (a hard requirement) means fixed sample patterns and a stable triangle/texel
   iteration order — avoid order-dependent floating-point accumulation where it affects output bytes.
 
 ---

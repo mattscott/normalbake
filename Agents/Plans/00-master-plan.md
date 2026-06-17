@@ -2,10 +2,10 @@
 
 ## Vision
 
-A permissively-licensed, dependency-light, cross-platform **managed-C# (.NET 8) library + CLI** that
-bakes a **normal map** (and, later, AO/curvature/position/ID/…) from a high-resolution mesh into the
-UV space of a low-resolution, quad-remeshed mesh — the baking partner to **Quadremesh**, in the same
-clean-room, golden-tested, zero-native-dependency mold.
+A standalone, permissively-licensed, dependency-light, cross-platform **managed-C# (.NET 8) library +
+CLI** that bakes a **normal map** (and, later, AO/curvature/position/ID/…) from a high-resolution mesh
+into the UV space of a low-resolution, quad-remeshed mesh — clean-room, golden-tested, with a
+zero-native-dependency build.
 
 ## Why this is achievable now
 
@@ -31,7 +31,7 @@ hard problems are *fidelity* (tangent-space sync) and *speed* (ray throughput), 
 - CLI tool + clean public C# API; deterministic output.
 
 **Out (v1.0 non-goals):**
-- **UV unwrapping** — the low-poly arrives with UVs from the separate sister project; NormalBake only
+- **UV unwrapping** — the low-poly arrives with UVs from the separate UV-unwrap tool; NormalBake only
   validates them ([../Documents/05-uvs-and-dilation.md](../Documents/05-uvs-and-dilation.md) §1).
 - GPU baking (CPU is portable + deterministic; GPU is a post-1.0 optional accelerator).
 - In-app skew-painting UI.
@@ -81,8 +81,7 @@ hard problems are *fidelity* (tangent-space sync) and *speed* (ray throughput), 
 - `NormalBake.Core` is written **clean-room** — no code lifted from xNormal/Blender/Embree; the
   MikkTSpace C reference is ported faithfully (zlib notice kept) and validated, not copied verbatim.
 - Validate bake stages against **reference Blender-headless outputs** on identical inputs (per-pixel +
-  SSIM + a FLIP error map), with **xNormal** as a historical cross-check — mirroring how Quadremesh
-  validates against QuadriFlow.
+  SSIM + a FLIP error map), with **xNormal** as a historical cross-check.
 - Keep a **test corpus** of mesh pairs under `tests/corpus/` (sphere, cube, hard-edge bevel, cylinder,
   one dense real mesh) used by every phase, with committed goldens under `tests/golden/`.
 - TDD where practical; golden-image tests for end-to-end stages; CPU + fixed accumulation order for

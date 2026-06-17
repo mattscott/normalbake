@@ -5,12 +5,12 @@ Licensed under the MIT License (see LICENSE).
 ================================================================================
 What this is
 ================================================================================
-NormalBake is a clean-room, managed-C# tool that bakes a normal map from a
-high-resolution mesh into the UV space of a low-resolution (quad-remeshed) mesh.
-It is the baking partner to Quadremesh. No third-party source code is copied into
-it; the algorithms it implements are described in the works below, and the
-permissively-licensed reference bakers are used only as an offline test oracle
-(built/run locally to emit golden images, never linked or redistributed).
+NormalBake is a standalone, clean-room, managed-C# tool that bakes a normal map
+from a high-resolution mesh into the UV space of a low-resolution (quad-remeshed)
+mesh. No third-party source code is copied into it; the algorithms it implements
+are described in the works below, and the permissively-licensed reference bakers
+are used only as an offline test oracle (built/run locally to emit golden images,
+never linked or redistributed).
 
 ================================================================================
 Algorithmic influences and attributions (clean-room — read for understanding)

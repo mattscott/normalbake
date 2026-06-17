@@ -1,13 +1,13 @@
 # Architecture & Roadmap
 
 This synthesizes the research into a concrete, **managed-C#/.NET 8, dependency-light, MIT-clean**
-architecture for NormalBake, structured to feel like one toolchain with Quadremesh, and an MVP → vNext
-roadmap. It is a *proposal* for the `Agents/Plans` roadmap to refine, not a final spec.
+architecture for NormalBake, and an MVP → vNext roadmap. It is a *proposal* for the `Agents/Plans`
+roadmap to refine, not a final spec.
 
-## 1. Constraints (inherited)
+## 1. Constraints
 
 - **.NET 8, pure managed.** Hot loops on `System.Numerics` + `System.Runtime.Intrinsics` (runtime ISA
-  dispatch), exactly as Quadremesh's faithful back-end does.
+  dispatch).
 - **No native dependencies.** The BVH ray tracer, tangent basis, rasterizer, dilation, and image I/O
   are all in-repo or pure-managed packages — no Embree/xatlas/MikkTSpace native DLLs.
 - **MIT/BSD-clean, clean-room.** Reimplement from papers/docs; reference bakers only generate goldens.
@@ -19,7 +19,7 @@ roadmap. It is a *proposal* for the `Agents/Plans` roadmap to refine, not a fina
 ```text
  high.obj ─► load ─► build BVH (binned-SAH / SBVH) ──────────────┐
                                                                  │
- low.obj  ─► load ─► validate UVs (required; from sister unwrap tool) ─► triangulate (shortest-diag,
+ low.obj  ─► load ─► validate UVs (required; from the UV-unwrap tool) ─► triangulate (shortest-diag,
                      MikkTSpace-consistent) ─► MikkTSpace tangents ─► build cage/envelope
                                                                  │
                      for each UV texel (SSAA sub-grid):          ▼
@@ -37,18 +37,18 @@ Each stage maps to a research doc: BVH → [`06`](06-acceleration-and-performanc
 [`02`](02-baking-algorithm.md); UVs/dilation → [`05`](05-uvs-and-dilation.md); AA → [`07`](07-quality-artifacts-and-aa.md);
 encode/formats → [`01`](01-normal-mapping-fundamentals.md).
 
-## 3. Proposed module layout (mirrors Quadremesh's `src/`)
+## 3. Proposed module layout
 
 ```text
 src/
   NormalBake.Core/            zero third-party deps
     Mesh/                     half-edge / indexed mesh, attributes, deterministic triangulation
-    Math/                     vec/mat, SIMD helpers (shared shape with Quadremesh.Core/Math)
+    Math/                     vec/mat, SIMD helpers
     Tangents/                 MikkTSpace-faithful basis (clean-room port; the correctness keystone)
     Acceleration/            BVH (binned-SAH + optional SBVH), Woop watertight ray-tri, packets
     Baking/                  UV rasterizer, cage/envelope, projection, sampling, SSAA, dilation
     Encoding/                normal<->RGB, Y-flip, 8/16-bit, BC5/BC7 (BCnEncoder.NET)
-  NormalBake.IO/              OBJ first (shared w/ Quadremesh.IO style); PNG/TGA/EXR/DDS
+  NormalBake.IO/              OBJ first; PNG/TGA/EXR/DDS
   NormalBake.Cli/             normalbake high.obj low.obj -o normal.png ...
 tests/
   NormalBake.Tests/           unit + golden-image tests
@@ -57,9 +57,8 @@ tools/
   reference-oracle/           Blender-headless scripts that generate goldens (xNormal cross-check)
 ```
 
-This is deliberately the same skeleton as Quadremesh (`Core` / `IO` / `Cli` + `tests/corpus` +
-`tools/reference-oracle`), so contributors move between repos with zero friction. Reuse the shared
-`Math` and OBJ-IO shapes; `Quadremesh.Core` could even become a referenced package for the mesh types.
+A conventional `Core` / `IO` / `Cli` split keeps the algorithm core free of IO/CLI concerns, with a
+separate test corpus and an offline reference-oracle harness for goldens.
 
 ## 4. Dependency decisions (from [`08`](08-prior-art-tools-and-libraries.md))
 
@@ -71,7 +70,7 @@ This is deliberately the same skeleton as Quadremesh (`Core` / `IO` / `Cli` + `t
 | PNG/TGA I/O | **StbImageSharp / StbImageWriteSharp** (PD/MIT) | unconditionally permissive; avoid ImageSharp's split license |
 | EXR | **Jither.OpenEXR** (MIT, managed, scanline write) | float archival output |
 | DDS decode | **Pfim** (MIT) | for round-trip/golden decode of BC outputs |
-| UV unwrap | **Out of scope — separate sister project** | NormalBake requires input UVs; a sister tool (xatlas-class) produces them |
+| UV unwrap | **Out of scope — separate tool** | NormalBake requires input UVs; a separate UV-unwrap tool (xatlas-class) produces them |
 | Test diff | **FLIP** (BSD-3, test-only) + SSIM/PSNR | perceptual error maps as CI artifacts |
 
 Avoid **ImageSharp** in the shipped core (Six Labors Split License → commercial fee ≥ $1M revenue).
@@ -114,7 +113,7 @@ The two riskiest pieces, validated in isolation before committing to the full ar
 UV rasterizer → distance-envelope cage → closest-hit projection → SSAA over a coverage mask → **Extend**
 dilation → 16-bit PNG, with OpenGL/DirectX flag and emitted MikkTSpace tangents. **Validation:** golden
 images from Blender headless (sphere, cube, hard-edge bevel, cylinder, one dense mesh), per-pixel +
-SSIM/PSNR + FLIP — the Quadremesh-vs-QuadriFlow discipline.
+SSIM/PSNR + FLIP against the reference oracle.
 
 ### Phase 2 — robustness & quality
 Explicit cage mesh + smoothed/averaged normals + nearest-point fallback; **skew correction**; per-part
@@ -126,7 +125,7 @@ Explicit cage mesh + smoothed/averaged normals + nearest-point fallback; **skew 
 **Toksvig/variance roughness** output for specular-AA-correct mips ([`07`](07-quality-artifacts-and-aa.md) §2).
 
 > **Not a NormalBake phase:** UV unwrapping. A bare remeshed mesh (no UVs) is made bakeable by the
-> **separate sister UV-unwrap project**, which sits between Quadremesh and NormalBake in the pipeline.
+> **separate UV-unwrap tool**, which sits between the quad-remesher and NormalBake in the pipeline.
 
 ### Always-on
 Determinism (CPU, fixed reduction order), golden corpus, no native deps, MIT-clean.
@@ -137,6 +136,6 @@ Determinism (CPU, fixed reduction order), golden corpus, no native deps, MIT-cle
    seams ([`03`](03-tangent-space-and-mikktspace.md)). The single highest-leverage correctness item.
 2. **Triangulation agreement.** One deterministic shortest-diagonal triangulation shared by tangent
    solver, rasterizer, and the consumer — or you get X-shaped errors ([`07`](07-quality-artifacts-and-aa.md) §3.3).
-3. **The UV precondition.** Quadremesh output has no usable UVs; NormalBake **requires** them as input
-   (the separate sister UV-unwrap project produces them) and must **validate the UV contract and fail
+3. **The UV precondition.** Quad-remesher output has no usable UVs; NormalBake **requires** them as input
+   (the separate UV-unwrap tool produces them) and must **validate the UV contract and fail
    fast** — non-overlap, seams at hard edges, gutters ≥ 2× padding ([`05`](05-uvs-and-dilation.md) §1).

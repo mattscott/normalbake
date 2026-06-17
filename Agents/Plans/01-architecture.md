@@ -100,7 +100,7 @@ explicit cage mesh, or add new map types, without touching the others.
 - **Bit-exact reproducibility caveat:** per-texel writes are independent, but supersample averaging is
   a reduction — floating-point addition is non-associative, so the sub-sample accumulation order must
   be **fixed** (or compensated/Kahan), never a nondeterministic parallel reduce. Sample patterns are
-  fixed; no `Math.Random`/wall-clock in the hot path. This mirrors Quadremesh's determinism discipline.
+  fixed; no `Math.Random`/wall-clock in the hot path.
 - CPU only for v1.0 (GPU would reintroduce FP/scheduling/driver nondeterminism and native deps).
 
 ## Public surface (v1.0)

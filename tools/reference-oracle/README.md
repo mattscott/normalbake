@@ -1,9 +1,9 @@
 # Reference oracle (test-only)
 
-NormalBake validates its output the same way Quadremesh validates against QuadriFlow: a trusted,
-free, scriptable, deterministic reference baker generates **golden normal maps**, and CI diffs
-NormalBake's output against them. None of these tools are shipped or linked — they are invoked as
-external processes to emit committed golden images.
+NormalBake validates its output against a reference oracle: a trusted, free, scriptable, deterministic
+reference baker generates **golden normal maps**, and CI diffs NormalBake's output against them. None
+of these tools are shipped or linked — they are invoked as external processes to emit committed golden
+images.
 
 ## Primary oracle — Blender (headless)
 

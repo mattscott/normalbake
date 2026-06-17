@@ -24,7 +24,7 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("usage: normalbake <high> <low> -o <out> [options]");
         Console.WriteLine();
-        Console.WriteLine("The low-poly must already have UVs (produced by the sister UV-unwrap tool).");
+        Console.WriteLine("The low-poly must already have UVs (produced by a separate UV-unwrap tool).");
         Console.WriteLine();
         Console.WriteLine("defaults:");
         Console.WriteLine($"  --res {d.Resolution}   --samples {d.Samples}   --convention {d.Convention}");

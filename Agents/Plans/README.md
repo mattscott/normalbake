@@ -23,7 +23,7 @@ The first *demoable* milestone (a baked tangent-space normal map out) is end of 
 **P2 (MikkTSpace) and P3 (BVH)** are the de-risking **kill-points** — each is validated in isolation
 (against the C reference / against brute force) before P4 integrates them.
 
-**Pipeline context.** NormalBake is the **baking** stage of a three-tool chain — *Quadremesh
-(retopology) → UV-unwrap tool (separate sister project) → NormalBake*. The low-poly **arrives with
-UVs**; NormalBake validates them and bakes. UV unwrapping is explicitly **out of scope** (see
-[../Documents/05-uvs-and-dilation.md](../Documents/05-uvs-and-dilation.md) §1).
+**Pipeline context.** NormalBake is the **baking** stage of a three-tool chain — *quad-remesher
+(retopology) → UV-unwrap tool → NormalBake*. The low-poly **arrives with UVs**; NormalBake validates
+them and bakes. The upstream quad-remesher and UV-unwrap tool are separate tools; UV unwrapping is
+explicitly **out of scope** (see [../Documents/05-uvs-and-dilation.md](../Documents/05-uvs-and-dilation.md) §1).

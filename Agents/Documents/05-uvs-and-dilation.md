@@ -5,17 +5,17 @@
 > coordinate* — no UVs, no texel address, nothing to write. This is a hard input precondition, not a
 > quality knob.
 
-## 1. UVs are a required input — a sister project produces them
+## 1. UVs are a required input — a separate tool produces them
 
-Auto-retopology engines — QuadriFlow, Instant Meshes, and Quadremesh — emit clean quad **topology**
-but **no texture parameterization**; UV unwrapping is a separate downstream step. Commercial Quad
-Remesher describes its output as *"ready for proper UV mapping"* — i.e. topology *suitable for*
-unwrapping, not a finished UV set.[^qr-faq] QuadriFlow outputs no UVs at all.
+Auto-retopology engines — QuadriFlow, Instant Meshes, and similar quad-remeshers — emit clean quad
+**topology** but **no texture parameterization**; UV unwrapping is a separate downstream step.
+Commercial Quad Remesher describes its output as *"ready for proper UV mapping"* — i.e. topology
+*suitable for* unwrapping, not a finished UV set.[^qr-faq] QuadriFlow outputs no UVs at all.
 
 **Decision: NormalBake requires the low-poly to arrive already UV-unwrapped.** Producing those UVs is
-the job of a **separate sister project** (an xatlas-class auto-unwrapper), keeping NormalBake focused
-on baking. The toolchain is therefore three stages: **Quadremesh** (retopology) → **UV-unwrap tool**
-(sister project) → **NormalBake** (this tool). NormalBake's responsibility at the UV boundary is to
+the job of a **separate UV-unwrap tool** (an xatlas-class auto-unwrapper), keeping NormalBake focused
+on baking. The toolchain is therefore three stages: a **quad-remesher** (retopology) → **UV-unwrap
+tool** → **NormalBake** (this tool). NormalBake's responsibility at the UV boundary is to
 **consume and validate** the incoming UVs, not to create them.
 
 The unwrap tool still has to satisfy a contract, and NormalBake should **check it and fail fast** —
@@ -112,7 +112,7 @@ AA, and never average background into edge texels. (AA details: [`07`](07-qualit
 
 ## 5. Checklist for NormalBake
 
-- [ ] **Require UVs as input** (a sister tool produces them); validate the UV contract — non-overlap,
+- [ ] **Require UVs as input** (a separate UV-unwrap tool produces them); validate the UV contract — non-overlap,
       seams at hard edges, gutter ≥ 2× padding, sane texel density — and **fail fast** on violations.
 - [ ] Enforce non-overlap in the active tile; support per-shell bake/reuse + UDIM offset + per-tile iteration.
 - [ ] Place UV seams at hard edges (the seam-free rule, [`07`](07-quality-artifacts-and-aa.md) §3).

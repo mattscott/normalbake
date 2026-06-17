@@ -119,7 +119,7 @@ letting you "massage the direction to fix projection errors" without remodeling.
   shaded result against the high-poly and against a **reference baker**. Seams that survive a
   synced-basis re-render indicate a genuine bake error (ray miss / cage / padding), not a viewer
   mismatch.[^marmoset-tut]
-- **Golden vs reference baker.** Adopt the Quadremesh discipline: a deterministic oracle (Blender
+- **Golden vs reference baker.** Use a golden-image discipline: a deterministic oracle (Blender
   headless) produces golden maps; CI diffs NormalBake's output per-texel + SSIM/PSNR + a ꟻLIP error
   map. All major bakers use MikkTSpace, so a synced NormalBake should match within AA/dither noise;
   large per-channel deltas localize the bug (handedness, triangulation, cage, padding). Details:

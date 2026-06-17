@@ -1,8 +1,8 @@
 # Prior Art — Tools, Reference Oracle & Reusable Libraries
 
 This surveys the existing normal-baking tools (to learn from and to pick a **golden-output oracle**),
-then catalogues **reusable, license-checked libraries** for a managed, MIT-clean implementation —
-mirroring how Quadremesh validates against QuadriFlow and reuses only permissive components.
+then catalogues **reusable, license-checked libraries** for a managed, MIT-clean implementation that
+validates against a reference oracle and reuses only permissive components.
 
 ## 1. Existing bakers
 
@@ -32,8 +32,7 @@ Handplane (converter, not baker), and MeshLab (not a game baker). The two real c
 - **Blender — primary.** `blender --background --python script.py` + `bpy` gives a fully programmatic,
   **cross-platform** pipeline (generate mesh pairs; set `cage_object` / `cage_extrusion` /
   `max_ray_distance`; bake; write PNG), uses the **canonical MikkTSpace** basis, is **open/inspectable**
-  (you can explain a golden), and is **deterministic** with pinned samples + compute device. This is
-  the exact analogue of Quadremesh building goldens from QuadriFlow.
+  (you can explain a golden), and is **deterministic** with pinned samples + compute device.
 - **xNormal — secondary cross-validator.** The long-standing industry reference basis (tools ship an
   "xNormal/Mikk" preset) and free + XML-scriptable; its disqualifier as *primary* CI oracle is being
   **Windows-only** and lightly maintained. Use it to confirm Blender goldens match the historical
@@ -56,8 +55,8 @@ native DLL, **breaks zero-native**) or a clean-room port.
 | Library | Purpose | License | Implication |
 |---|---|---|---|
 | **MikkTSpace**[^mikk] | the tangent-basis keystone | zlib (MIT-compatible) | **Native C, single file.** No pure-managed port exists. **Clean-room port → low effort**; keep the notice. *Correctness keystone.* |
-| **xatlas**[^xatlas] | UV unwrap / atlas | MIT | **Native C++**, no deps. *Out of NormalBake's scope* — UVs are an input; the **separate sister UV-unwrap project** owns this (clean-room port or wrapper there). |
-| MS **UVAtlas**[^uvatlas] | UV unwrap (alternative; sister project) | MIT | native C++ (pulls DirectXMath/Mesh). |
+| **xatlas**[^xatlas] | UV unwrap / atlas | MIT | **Native C++**, no deps. *Out of NormalBake's scope* — UVs are an input; the **separate UV-unwrap tool** owns this (clean-room port or wrapper there). |
+| MS **UVAtlas**[^uvatlas] | UV unwrap (alternative; separate tool) | MIT | native C++ (pulls DirectXMath/Mesh). |
 | **Embree**[^embree] | reference CPU ray tracer | Apache-2.0 | native; binding makes it a native dep (contra philosophy). Reimplement the BVH in managed C# instead ([`06`](06-acceleration-and-performance.md)). |
 
 ### 3.3 Avoid for the MIT-clean core
@@ -70,13 +69,12 @@ native DLL, **breaks zero-native**) or a clean-room port.
   CI artifact on golden-test failures (§4). Fine as a dev/test dependency.
 
 **Net porting picture.** Pure-managed, MIT-clean coverage already exists for BC5/BC7 + DDS/KTX, PNG/TGA/JPEG,
-EXR write, DDS decode. With UV unwrapping handed to the **separate sister project**, NormalBake's
+EXR write, DDS decode. With UV unwrapping handed to the **separate UV-unwrap tool**, NormalBake's
 **only** nontrivial clean-room port is **MikkTSpace** (*low effort*, single C file — the correctness
-keystone); its zlib source is MIT-compatible, and validating the port against the C reference's output
-is exactly the Quadremesh playbook. (**xatlas/UVAtlas** ports belong to the sister UV-unwrap project,
-not here.)
+keystone); its zlib source is MIT-compatible, and the port is validated against the C reference's
+output. (**xatlas/UVAtlas** ports belong to the separate UV-unwrap tool, not here.)
 
-## 4. Golden-image testing (mirrors Quadremesh ↔ QuadriFlow)
+## 4. Golden-image testing
 
 Generate references with **Blender headless**, bake the same inputs with NormalBake, diff within
 tolerance. Determinism first (CPU, fixed accumulation order, pinned sample pattern, MikkTSpace basis,

@@ -11,7 +11,7 @@ calendar time. Doc references point at [../Documents/](../Documents/).
 **Tasks**
 - `NormalBake.sln` + three `src/` projects + `tests/` project (.NET 8), classic `.sln` (not `.slnx`).
 - Shared `Directory.Build.props` / `Directory.Packages.props` / `global.json` / `.editorconfig`
-  (analyzers on, style enforced, warnings fatal, deterministic) — matching Quadremesh.
+  (analyzers on, style enforced, warnings fatal, deterministic).
 - CI: build + test on push (GitHub Actions, Windows + Linux).
 - MIT `LICENSE` + `NOTICE` (baking papers, MikkTSpace zlib, Blender/xNormal oracle).
 - **Reference-oracle harness** stub under `tools/reference-oracle/` (Blender-headless plan; §08).
@@ -48,8 +48,8 @@ the validator accepts good UVs and rejects overlapping/gutter-poor UVs with acti
 
 **Deliverables**: per-vertex MikkTSpace tangents on any UV mesh.
 **Acceptance**: tangent output is **bit-close to the C reference** (`mikktspace.c`) on the corpus
-(within a tight tolerance, mirroring Quadremesh-vs-QuadriFlow validation); mirrored-UV handedness
-signs are correct; degenerate triangles inherit neighbours' frames.
+(within a tight tolerance); mirrored-UV handedness signs are correct; degenerate triangles inherit
+neighbours' frames.
 
 > **Kill-point:** if a faithful, reference-matching MikkTSpace can't be achieved in managed C#, revisit
 > the whole approach before building the bake — every tangent-space map depends on this.
