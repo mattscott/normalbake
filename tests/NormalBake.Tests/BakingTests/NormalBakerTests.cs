@@ -90,6 +90,80 @@ public class NormalBakerTests
     }
 
     [Fact]
+    public void ObjectSpace_Sphere_ProducesRainbowNormals()
+    {
+        MeshPair pair = Primitives.Sphere();
+        var opt = new NormalBakeOptions { Resolution = 128, Samples = 2, Space = NormalSpace.Object };
+        BakedMap map = NormalBaker.Bake(pair.High, pair.Low, opt, out bool[] baked);
+
+        Vector3 sum = Vector3.Zero;
+        int n = 0;
+        float minX = 1f;
+        float maxX = -1f;
+        float minZ = 1f;
+        float maxZ = -1f;
+        for (int i = 0; i < baked.Length; i++)
+        {
+            if (!baked[i])
+            {
+                continue;
+            }
+
+            Vector3 nrm = DecodedNormal(map, i);
+            Assert.True(MathF.Abs(nrm.Length() - 1f) < 0.05f, $"object-space normal not unit: {nrm.Length()}");
+            sum += nrm;
+            n++;
+            minX = MathF.Min(minX, nrm.X);
+            maxX = MathF.Max(maxX, nrm.X);
+            minZ = MathF.Min(minZ, nrm.Z);
+            maxZ = MathF.Max(maxZ, nrm.Z);
+        }
+
+        // Radial object-space normals span the full sphere of directions and average to ~0 (not flat-blue).
+        Assert.True((sum / n).Length() < 0.2f, $"object-space normals not symmetric: mean {(sum / n).Length()}");
+        Assert.True(maxX - minX > 1.5f && maxZ - minZ > 1.5f, "object-space normals should span both signs");
+    }
+
+    [Fact]
+    public void NearestPointFallback_FillsMissesWhereCageMisses()
+    {
+        // A high sphere shrunk to 0.8 sits 0.2 inside the low sphere; a tiny 0.05 cage can't reach it,
+        // so every ray misses. The fallback must fill those texels from the nearest surface point.
+        MeshPair pair = Primitives.Sphere();
+        Mesh shrunk = ScalePositions(pair.High, 0.8f);
+
+        BakedMap onMap = NormalBaker.Bake(shrunk, pair.Low, Cage(fallback: true), out bool[] bakedOn);
+        BakedMap offMap = NormalBaker.Bake(shrunk, pair.Low, Cage(fallback: false), out bool[] bakedOff);
+        _ = onMap;
+        _ = offMap;
+
+        int on = bakedOn.Count(b => b);
+        int off = bakedOff.Count(b => b);
+        Assert.True(off < 50, $"expected the tiny cage to miss almost everything, baked {off}");
+        Assert.True(on > 1000, $"expected the nearest-point fallback to fill misses, baked {on}");
+    }
+
+    private static NormalBakeOptions Cage(bool fallback) => new()
+    {
+        Resolution = 128,
+        Samples = 2,
+        FrontalDistance = 0.05,
+        RearDistance = 0.05,
+        NearestPointFallback = fallback,
+    };
+
+    private static Mesh ScalePositions(Mesh mesh, float scale)
+    {
+        var positions = mesh.Positions.ToArray();
+        for (int i = 0; i < positions.Length; i++)
+        {
+            positions[i] *= scale;
+        }
+
+        return new Mesh(positions, mesh.Normals.ToArray(), mesh.Indices.ToArray());
+    }
+
+    [Fact]
     public void Bake_IsDeterministic()
     {
         MeshPair pair = Primitives.Box();

@@ -169,6 +169,95 @@ public sealed class Bvh : IRayTracer
         return false;
     }
 
+    /// <summary>
+    /// Finds the closest point on any triangle to <paramref name="query"/> (the nearest-point fallback
+    /// when a cage ray misses). <c>hit.T</c> is the distance; <c>hit.U/V</c> the barycentric weights.
+    /// </summary>
+    public bool ClosestPoint(Vector3 query, out Hit hit)
+    {
+        hit = default;
+        float bestSq = float.MaxValue;
+        int bestTri = -1;
+        float bestU = 0f;
+        float bestV = 0f;
+
+        Span<int> stack = stackalloc int[64];
+        int sp = 0;
+        stack[sp++] = 0;
+        while (sp > 0)
+        {
+            ref Node node = ref _nodes[stack[--sp]];
+            if (DistanceSqToBox(query, node.Min, node.Max) >= bestSq)
+            {
+                continue;
+            }
+
+            if (node.Count > 0)
+            {
+                int end = node.LeftFirst + node.Count;
+                for (int i = node.LeftFirst; i < end; i++)
+                {
+                    int tri = _triIndex[i];
+                    Vector3 cp = TriangleMath.ClosestPointOnTriangle(
+                        query, _v0[tri], _v1[tri], _v2[tri], out _, out float wb, out float wc);
+                    float dsq = (cp - query).LengthSquared();
+                    if (dsq < bestSq)
+                    {
+                        bestSq = dsq;
+                        bestTri = tri;
+                        bestU = wb; // barycentric weight of the second vertex
+                        bestV = wc; // barycentric weight of the third vertex
+                    }
+                }
+
+                continue;
+            }
+
+            int left = node.LeftFirst;
+            int right = left + 1;
+            float dl = DistanceSqToBox(query, _nodes[left].Min, _nodes[left].Max);
+            float dr = DistanceSqToBox(query, _nodes[right].Min, _nodes[right].Max);
+            if (dl <= dr)
+            {
+                if (dr < bestSq)
+                {
+                    stack[sp++] = right;
+                }
+
+                if (dl < bestSq)
+                {
+                    stack[sp++] = left;
+                }
+            }
+            else
+            {
+                if (dl < bestSq)
+                {
+                    stack[sp++] = left;
+                }
+
+                if (dr < bestSq)
+                {
+                    stack[sp++] = right;
+                }
+            }
+        }
+
+        if (bestTri < 0)
+        {
+            return false;
+        }
+
+        hit = new Hit(MathF.Sqrt(bestSq), bestTri, bestU, bestV);
+        return true;
+    }
+
+    private static float DistanceSqToBox(Vector3 p, Vector3 min, Vector3 max)
+    {
+        Vector3 clamped = Vector3.Clamp(p, min, max);
+        return (p - clamped).LengthSquared();
+    }
+
     private static Vector3 InverseDirection(Vector3 d) => new(1f / d.X, 1f / d.Y, 1f / d.Z);
 
     private static bool IntersectAabb(

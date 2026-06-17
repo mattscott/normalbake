@@ -13,6 +13,16 @@ public enum NormalMapConvention
     DirectX,
 }
 
+/// <summary>The frame a baked normal is expressed in.</summary>
+public enum NormalSpace
+{
+    /// <summary>Per-pixel TBN frame — reusable on deforming/tiled/mirrored meshes (the default).</summary>
+    Tangent,
+
+    /// <summary>The model's local frame — "rainbow" map; static, unique-UV props; no runtime TBN.</summary>
+    Object,
+}
+
 /// <summary>Output image format for a baked map.</summary>
 public enum OutputFormat
 {
@@ -46,6 +56,18 @@ public sealed class NormalBakeOptions
 
     /// <summary>Green-channel convention of the written normal map.</summary>
     public NormalMapConvention Convention { get; init; } = NormalMapConvention.OpenGl;
+
+    /// <summary>The frame the baked normal is expressed in (tangent-space by default).</summary>
+    public NormalSpace Space { get; init; } = NormalSpace.Tangent;
+
+    /// <summary>When a cage ray finds no hit, sample the nearest high-poly surface point instead (fills holes).</summary>
+    public bool NearestPointFallback { get; init; } = true;
+
+    /// <summary>UDIM tile column to bake: UVs are shifted by −<see cref="TileU"/> in U into the 0–1 output.</summary>
+    public int TileU { get; init; }
+
+    /// <summary>UDIM tile row to bake: UVs are shifted by −<see cref="TileV"/> in V into the 0–1 output.</summary>
+    public int TileV { get; init; }
 
     /// <summary>Bits per channel of the output image (8 or 16).</summary>
     public int BitDepth { get; init; } = 16;

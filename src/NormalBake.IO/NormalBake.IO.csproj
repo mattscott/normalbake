@@ -10,4 +10,8 @@
     <ProjectReference Include="..\NormalBake.Core\NormalBake.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="BCnEncoder.Net" />
+  </ItemGroup>
+
 </Project>

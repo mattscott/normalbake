@@ -43,10 +43,37 @@ internal static class Program
         Mesh high = ObjReader.ReadMesh(config.High);
         UvMesh low = ObjReader.ReadUvMesh(config.Low);
         BakedMap map = NormalBaker.Bake(high, low, config.Options);
-        PngWriter.Write(config.Output, map, config.Options.BitDepth);
+
+        string ext = Path.GetExtension(config.Output).ToLowerInvariant();
+        string format = ext switch
+        {
+            ".dds" => WriteDds(config, map),
+            ".exr" => WriteExr(config, map),
+            _ => WritePng(config, map),
+        };
+
         Console.WriteLine(
-            $"baked {config.Options.Resolution}x{config.Options.Resolution} {config.Options.BitDepth}-bit "
-            + $"{config.Options.Convention} normal map → {config.Output}");
+            $"baked {config.Options.Resolution}x{config.Options.Resolution} {config.Options.Space} "
+            + $"{config.Options.Convention} normal map ({format}) → {config.Output}");
+    }
+
+    private static string WritePng(Config config, BakedMap map)
+    {
+        PngWriter.Write(config.Output, map, config.Options.BitDepth);
+        return $"PNG {config.Options.BitDepth}-bit";
+    }
+
+    private static string WriteDds(Config config, BakedMap map)
+    {
+        BlockCompression bc = config.Bc7 ? BlockCompression.Bc7 : BlockCompression.Bc5;
+        DdsWriter.Write(config.Output, map, bc);
+        return $"DDS {bc}";
+    }
+
+    private static string WriteExr(Config config, BakedMap map)
+    {
+        ExrWriter.Write(config.Output, map);
+        return "EXR float";
     }
 
     private static Config Parse(string[] args)
@@ -60,6 +87,9 @@ internal static class Program
         double frontal = 0;
         double rear = 0;
         var convention = NormalMapConvention.OpenGl;
+        var space = NormalSpace.Tangent;
+        bool fallback = true;
+        bool bc7 = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -68,6 +98,15 @@ internal static class Program
             {
                 case "-o" or "--output":
                     output = Next(args, ref i);
+                    break;
+                case "--space":
+                    space = ParseSpace(Next(args, ref i));
+                    break;
+                case "--no-fallback":
+                    fallback = false;
+                    break;
+                case "--bc7":
+                    bc7 = true;
                     break;
                 case "--res" or "--resolution":
                     res = ParseInt(Next(args, ref i), "--res");
@@ -116,9 +155,18 @@ internal static class Program
             FrontalDistance = frontal,
             RearDistance = rear,
             Convention = convention,
+            Space = space,
+            NearestPointFallback = fallback,
         };
-        return new Config(high, low, output, options);
+        return new Config(high, low, output, options, bc7);
     }
+
+    private static NormalSpace ParseSpace(string value) => value.ToLowerInvariant() switch
+    {
+        "tangent" or "ts" => NormalSpace.Tangent,
+        "object" or "os" => NormalSpace.Object,
+        _ => throw new ArgumentException($"--space must be 'tangent' or 'object', got '{value}'."),
+    };
 
     private static void AssignPositional(string value, ref string? high, ref string? low)
     {
@@ -182,10 +230,15 @@ internal static class Program
         Console.WriteLine($"  --res <n>               texture resolution (default {d.Resolution})");
         Console.WriteLine($"  --samples <n>           supersample grid N (NxN rays/texel, default {d.Samples})");
         Console.WriteLine($"  --convention <gl|dx>    green-channel convention (default {d.Convention})");
-        Console.WriteLine($"  --bitdepth <8|16>       bits per channel (default {d.BitDepth})");
+        Console.WriteLine($"  --bitdepth <8|16>       bits per channel for PNG (default {d.BitDepth})");
+        Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");
         Console.WriteLine($"  --frontal <d>           outer cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --rear <d>              inner cage distance (0 = auto from bounds)");
+        Console.WriteLine($"  --no-fallback           don't fill cage misses from the nearest surface point");
+        Console.WriteLine($"  --bc7                   use BC7 instead of BC5 for .dds output");
+        Console.WriteLine();
+        Console.WriteLine("output format is chosen by extension: .png (default), .dds (BC5/BC7), .exr (float).");
     }
 
-    private sealed record Config(string High, string Low, string Output, NormalBakeOptions Options);
+    private sealed record Config(string High, string Low, string Output, NormalBakeOptions Options, bool Bc7);
 }

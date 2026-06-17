@@ -118,6 +118,37 @@ public class BvhTests
         }
     }
 
+    [Theory]
+    [InlineData("sphere")]
+    [InlineData("box")]
+    [InlineData("cylinder")]
+    public void ClosestPoint_MatchesBruteForce(string name)
+    {
+        Mesh mesh = GetHigh(name);
+        var bvh = Bvh.Build(mesh);
+        (Vector3 center, float radius) = BoundsOf(mesh);
+        ReadOnlySpan<Vector3> positions = mesh.Positions;
+        ReadOnlySpan<int> indices = mesh.Indices;
+
+        var rng = new Random(5);
+        for (int k = 0; k < 500; k++)
+        {
+            Vector3 q = center + (RandomUnit(rng) * radius * (0.3f + (rng.NextSingle() * 1.7f)));
+            Assert.True(bvh.ClosestPoint(q, out Hit hb));
+
+            float bestSq = float.MaxValue;
+            for (int t = 0; t < indices.Length; t += 3)
+            {
+                Vector3 cp = TriangleMath.ClosestPointOnTriangle(
+                    q, positions[indices[t]], positions[indices[t + 1]], positions[indices[t + 2]],
+                    out _, out _, out _);
+                bestSq = MathF.Min(bestSq, (cp - q).LengthSquared());
+            }
+
+            Assert.True(MathF.Abs(hb.T - MathF.Sqrt(bestSq)) < Eps, $"{name}: {hb.T} vs {MathF.Sqrt(bestSq)}");
+        }
+    }
+
     [Fact]
     public void HandlesLargeRayBatchAtScale()
     {

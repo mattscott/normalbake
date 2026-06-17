@@ -43,10 +43,12 @@ Third-party runtime dependencies
 The core ships dependency-light. Permissively-licensed managed packages are added
 per phase (Agents/Plans/02-phase-roadmap.md) and listed here as they land:
 
-  BCnEncoder.NET                      BC5/BC7 + DDS/KTX encode/decode  (MIT OR Unlicense)
-  StbImageSharp / StbImageWriteSharp  PNG/TGA image I/O                (Public Domain OR MIT)
-  Pfim                                DDS/TGA decode                   (MIT)
-  Jither.OpenEXR                      OpenEXR I/O                      (MIT)
+  BCnEncoder.NET   BC5/BC7 + DDS encode/decode  (MIT OR Unlicense)
+                   (pulls CommunityToolkit.HighPerformance, MIT)
+
+The PNG and OpenEXR writers and the OBJ/glTF readers are hand-rolled in
+NormalBake.IO (no dependency); the float EXR writer fills in for Jither.OpenEXR,
+which is not published on NuGet.
 
 ImageSharp is deliberately avoided (Six Labors Split License) to keep the
 dependency graph unconditionally permissive.
