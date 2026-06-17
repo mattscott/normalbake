@@ -3,16 +3,16 @@ using System.Numerics;
 namespace NormalBake.Core;
 
 /// <summary>
-/// The top-level baker: projects a high-poly's surface detail into a low-poly's UV space as a
-/// tangent-space normal map. Validates the UV contract (P1), computes MikkTSpace tangents if absent
-/// (P2), builds a BVH (P3), then for every UV texel recovers the surface point and tangent frame, casts
-/// a cage-bounded ray to the high-poly, samples its smooth normal, and re-expresses it in the low-poly
-/// frame — supersampled over a coverage mask and Extend-dilated. See
-/// <c>Agents/Documents/02-baking-algorithm.md</c>.
+/// The top-level baker. Its default product is a tangent-space normal map (projection ray-cast + the
+/// MikkTSpace frame), but the same single-ray core drives a family of maps via
+/// <see cref="NormalBakeOptions.Map"/>: object/world position, ambient occlusion and thickness
+/// (hemisphere sampling), curvature (normal-field derivative), and per-part object ID. Pipeline: validate
+/// UVs (P1) → tangents (P2) → BVH (P3) → per-texel rasterize + cage ray / hemisphere → resolve over a
+/// coverage mask → Extend dilate. See <c>Agents/Documents/02-baking-algorithm.md</c>.
 /// </summary>
 public static class NormalBaker
 {
-    /// <summary>Bakes a tangent-space normal map. The low-poly's tangents are computed if not present.</summary>
+    /// <summary>Bakes a map for one high/low pair. The low-poly's tangents are computed if not present.</summary>
     public static BakedMap Bake(Mesh highPoly, UvMesh lowPoly, NormalBakeOptions options) =>
         Bake(highPoly, lowPoly, options, out _);
 
@@ -29,14 +29,15 @@ public static class NormalBaker
         int res = options.Resolution;
         var accum = new Vector3[res * res];
         var coverage = new int[res * res];
-        Accumulate(highPoly, lowPoly, options, accum, coverage);
-        return Resolve(accum, coverage, res, options.Convention, out bakedMask);
+        Aabb bounds = BoundsOf(highPoly.Positions);
+        Accumulate(highPoly, lowPoly, options, accum, coverage, IdColor(0), bounds);
+        return Resolve(accum, coverage, options, bounds, out bakedMask);
     }
 
     /// <summary>
     /// Bakes several named parts into one shared atlas, each low-poly projected against <b>only its own</b>
     /// high-poly (a separate BVH per part). This match-by-name isolation stops a nearby part's geometry
-    /// from bleeding into another part's bake. See <c>Agents/Documents/04-cage-and-projection.md</c>.
+    /// from bleeding into another part's bake, and gives each part a distinct ID colour.
     /// </summary>
     public static BakedMap BakeParts(IReadOnlyList<BakePart> parts, NormalBakeOptions options)
     {
@@ -50,13 +51,21 @@ public static class NormalBaker
         int res = options.Resolution;
         var accum = new Vector3[res * res];
         var coverage = new int[res * res];
+
+        var bounds = Aabb.Empty;
         foreach (BakePart part in parts)
         {
-            UvContract.ValidateOrThrow(part.Low, new UvValidationOptions { Resolution = res });
-            Accumulate(part.High, part.Low, options, accum, coverage);
+            bounds = bounds.Union(BoundsOf(part.High.Positions));
         }
 
-        return Resolve(accum, coverage, res, options.Convention, out _);
+        for (int p = 0; p < parts.Count; p++)
+        {
+            BakePart part = parts[p];
+            UvContract.ValidateOrThrow(part.Low, new UvValidationOptions { Resolution = res });
+            Accumulate(part.High, part.Low, options, accum, coverage, IdColor(p), bounds);
+        }
+
+        return Resolve(accum, coverage, options, bounds, out _);
     }
 
     /// <summary>
@@ -98,7 +107,8 @@ public static class NormalBaker
     }
 
     private static void Accumulate(
-        Mesh high, UvMesh low, NormalBakeOptions options, Vector3[] accum, int[] coverage)
+        Mesh high, UvMesh low, NormalBakeOptions options, Vector3[] accum, int[] coverage, Vector3 idColor,
+        Aabb bounds)
     {
         if (!low.HasTangents)
         {
@@ -107,10 +117,13 @@ public static class NormalBaker
 
         var bvh = Bvh.Build(high);
         (float frontal, float rear) = ResolveCage(low, options);
-        var ctx = new BakeContext(
-            high, low, bvh, frontal, rear, options.Resolution, Math.Max(1, options.Samples),
-            options.Space, options.NearestPointFallback, options.TileU, options.TileV);
+        float occRadius = options.OcclusionRadius > 0
+            ? (float)options.OcclusionRadius
+            : bounds.Extent.Length() * 0.5f;
+        float occBias = MathF.Max(1e-4f, bounds.Extent.Length() * 1e-2f); // clear local facets on grazing rays
+        var hemi = new Hemisphere(options.OcclusionSamples);
 
+        var ctx = new BakeContext(high, low, bvh, options, frontal, rear, idColor, hemi, occRadius, occBias);
         ReadOnlySpan<int> indices = low.Indices;
         for (int t = 0; t < indices.Length; t += 3)
         {
@@ -119,10 +132,12 @@ public static class NormalBaker
     }
 
     private static BakedMap Resolve(
-        Vector3[] accum, int[] coverage, int res, NormalMapConvention convention, out bool[] bakedMask)
+        Vector3[] accum, int[] coverage, NormalBakeOptions options, Aabb bounds, out bool[] bakedMask)
     {
+        int res = options.Resolution;
         var map = new BakedMap(res, res);
         var covered = new bool[res * res];
+        var averaged = new Vector3[res * res];
         for (int i = 0; i < coverage.Length; i++)
         {
             if (coverage[i] == 0)
@@ -130,18 +145,110 @@ public static class NormalBaker
                 continue;
             }
 
-            Vector3 avg = accum[i] / coverage[i];
-            float len = avg.Length();
-            Vector3 nT = len > 1e-12f ? avg / len : new Vector3(0f, 0f, 1f);
-            Vector3 rgb = NormalEncoder.Encode(nT, convention);
-            map.SetPixel(i % res, i / res, rgb.X, rgb.Y, rgb.Z);
+            averaged[i] = accum[i] / coverage[i];
             covered[i] = true;
         }
 
         bakedMask = (bool[])covered.Clone();
+
+        if (options.Map == MapType.Curvature)
+        {
+            ResolveCurvature(averaged, covered, res, map);
+        }
+        else
+        {
+            for (int i = 0; i < covered.Length; i++)
+            {
+                if (covered[i])
+                {
+                    Vector3 rgb = Encode(averaged[i], options, bounds);
+                    map.SetPixel(i % res, i / res, rgb.X, rgb.Y, rgb.Z);
+                }
+            }
+        }
+
         Dilation.Extend(map, covered);
         return map;
     }
+
+    private static Vector3 Encode(Vector3 value, NormalBakeOptions options, Aabb bounds)
+    {
+        switch (options.Map)
+        {
+            case MapType.Normal:
+                float len = value.Length();
+                Vector3 nT = len > 1e-12f ? value / len : new Vector3(0f, 0f, 1f);
+                return NormalEncoder.Encode(nT, options.Convention);
+            case MapType.Position:
+                Vector3 extent = bounds.Extent;
+                return new Vector3(
+                    SafeNormalize(value.X - bounds.Min.X, extent.X),
+                    SafeNormalize(value.Y - bounds.Min.Y, extent.Y),
+                    SafeNormalize(value.Z - bounds.Min.Z, extent.Z));
+            default: // AO, Thickness, ObjectId already carry [0,1] RGB/grayscale values
+                return Vector3.Clamp(value, Vector3.Zero, Vector3.One);
+        }
+    }
+
+    private static void ResolveCurvature(Vector3[] normals, bool[] covered, int res, BakedMap map)
+    {
+        const float scale = 0.06f;
+        for (int y = 0; y < res; y++)
+        {
+            for (int x = 0; x < res; x++)
+            {
+                int i = (y * res) + x;
+                if (!covered[i])
+                {
+                    continue;
+                }
+
+                float dNxdx = Gradient(normals, covered, res, x, y, 1, 0, n => n.X);
+                float dNydy = Gradient(normals, covered, res, x, y, 0, 1, n => n.Y);
+                float curvature = (dNxdx + dNydy) * res * scale; // convex → positive
+                float g = Math.Clamp(0.5f + curvature, 0f, 1f);
+                map.SetPixel(x, y, g, g, g);
+            }
+        }
+    }
+
+    private static float Gradient(
+        Vector3[] normals, bool[] covered, int res, int x, int y, int dx, int dy, Func<Vector3, float> comp)
+    {
+        int prev = Index(res, x - dx, y - dy);
+        int next = Index(res, x + dx, y + dy);
+        bool hasPrev = prev >= 0 && covered[prev];
+        bool hasNext = next >= 0 && covered[next];
+        int center = (y * res) + x;
+        if (hasPrev && hasNext)
+        {
+            return (comp(Normalized(normals[next])) - comp(Normalized(normals[prev]))) * 0.5f;
+        }
+
+        if (hasNext)
+        {
+            return comp(Normalized(normals[next])) - comp(Normalized(normals[center]));
+        }
+
+        if (hasPrev)
+        {
+            return comp(Normalized(normals[center])) - comp(Normalized(normals[prev]));
+        }
+
+        return 0f;
+    }
+
+    private static Vector3 Normalized(Vector3 v)
+    {
+        float len = v.Length();
+        return len > 1e-12f ? v / len : v;
+    }
+
+    private static int Index(int res, int x, int y) =>
+        (uint)x >= (uint)res || (uint)y >= (uint)res ? -1 : (y * res) + x;
+
+    private static float SafeNormalize(float v, float extent) =>
+        extent > 1e-12f ? Math.Clamp(v / extent, 0f, 1f) : 0.5f;
 
     private static (float Frontal, float Rear) ResolveCage(UvMesh lowPoly, NormalBakeOptions options)
     {
@@ -152,18 +259,50 @@ public static class NormalBaker
             return (frontal, rear);
         }
 
+        float auto = BoundsOf(lowPoly.Positions).Extent.Length() * 0.1f; // ~10% of the diagonal
+        return (frontal > 0f ? frontal : auto, rear > 0f ? rear : auto);
+    }
+
+    private static Aabb BoundsOf(ReadOnlySpan<Vector3> positions)
+    {
         var box = Aabb.Empty;
-        foreach (Vector3 p in lowPoly.Positions)
+        foreach (Vector3 p in positions)
         {
             box = box.Include(p);
         }
 
-        float auto = box.Extent.Length() * 0.1f; // ~10% of the bounding-box diagonal
-        return (frontal > 0f ? frontal : auto, rear > 0f ? rear : auto);
+        return box;
+    }
+
+    private static Vector3 IdColor(int index)
+    {
+        float h = Frac(0.5f + (index * 0.618033989f));
+        return HsvToRgb(h, 0.65f, 0.95f);
+    }
+
+    private static float Frac(float x) => x - MathF.Floor(x);
+
+    private static Vector3 HsvToRgb(float h, float s, float v)
+    {
+        float i = MathF.Floor(h * 6f);
+        float f = (h * 6f) - i;
+        float p = v * (1f - s);
+        float q = v * (1f - (f * s));
+        float t = v * (1f - ((1f - f) * s));
+        return ((int)i % 6) switch
+        {
+            0 => new Vector3(v, t, p),
+            1 => new Vector3(q, v, p),
+            2 => new Vector3(p, v, t),
+            3 => new Vector3(p, q, v),
+            4 => new Vector3(t, p, v),
+            _ => new Vector3(v, p, q),
+        };
     }
 
     private sealed class BakeContext
     {
+        private readonly Vector3[] _hiPos;
         private readonly Vector3[] _hiNormals;
         private readonly int[] _hiIndices;
         private readonly Vector3[] _loPos;
@@ -171,19 +310,25 @@ public static class NormalBaker
         private readonly Vector2[] _loUvs;
         private readonly Vector4[] _loTangents;
         private readonly Bvh _bvh;
+        private readonly MapType _map;
+        private readonly NormalSpace _space;
+        private readonly bool _fallback;
         private readonly float _frontal;
         private readonly float _rear;
         private readonly int _res;
         private readonly int _samples;
-        private readonly NormalSpace _space;
-        private readonly bool _fallback;
         private readonly float _tileU;
         private readonly float _tileV;
+        private readonly Vector3 _idColor;
+        private readonly Hemisphere _hemi;
+        private readonly float _occRadius;
+        private readonly float _occBias;
 
         public BakeContext(
-            Mesh high, UvMesh low, Bvh bvh, float frontal, float rear, int res, int samples, NormalSpace space,
-            bool fallback, int tileU, int tileV)
+            Mesh high, UvMesh low, Bvh bvh, NormalBakeOptions options, float frontal, float rear,
+            Vector3 idColor, Hemisphere hemi, float occRadius, float occBias)
         {
+            _hiPos = high.PositionArray;
             _hiNormals = high.NormalArray;
             _hiIndices = high.IndexArray;
             _loPos = low.PositionArray;
@@ -191,19 +336,23 @@ public static class NormalBaker
             _loUvs = low.UvArray;
             _loTangents = low.TangentArray;
             _bvh = bvh;
+            _map = options.Map;
+            _space = options.Space;
+            _fallback = options.NearestPointFallback;
             _frontal = frontal;
             _rear = rear;
-            _res = res;
-            _samples = samples;
-            _space = space;
-            _fallback = fallback;
-            _tileU = tileU;
-            _tileV = tileV;
+            _res = options.Resolution;
+            _samples = Math.Max(1, options.Samples);
+            _tileU = options.TileU;
+            _tileV = options.TileV;
+            _idColor = idColor;
+            _hemi = hemi;
+            _occRadius = occRadius;
+            _occBias = occBias;
         }
 
         public void RasterizeTriangle(int i0, int i1, int i2, Vector3[] accum, int[] coverage)
         {
-            // Texel-space triangle (V flipped so row 0 is the top of the 0–1 tile).
             Vector2 t0 = ToTexel(_loUvs[i0]);
             Vector2 t1 = ToTexel(_loUvs[i1]);
             Vector2 t2 = ToTexel(_loUvs[i2]);
@@ -220,11 +369,11 @@ public static class NormalBaker
             float area = EdgeFunction(t0, t1, t2);
             if (MathF.Abs(area) < 1e-12f)
             {
-                return; // degenerate in UV — covers no texels
+                return;
             }
 
             float invArea = 1f / area;
-            float w = _loTangents[i0].W; // handedness is constant within a UV island
+            float w = _loTangents[i0].W;
 
             for (int py = y0; py <= y1; py++)
             {
@@ -241,13 +390,13 @@ public static class NormalBaker
                             float c = EdgeFunction(t0, t1, sample) * invArea;
                             if (a < -1e-6f || b < -1e-6f || c < -1e-6f)
                             {
-                                continue; // outside the triangle
+                                continue;
                             }
 
-                            if (TrySample(i0, i1, i2, a, b, c, w, out Vector3 nT))
+                            if (TrySampleValue(i0, i1, i2, a, b, c, w, out Vector3 value))
                             {
                                 int idx = (py * _res) + px;
-                                accum[idx] += nT;
+                                accum[idx] += value;
                                 coverage[idx]++;
                             }
                         }
@@ -256,32 +405,55 @@ public static class NormalBaker
             }
         }
 
-        private bool TrySample(int i0, int i1, int i2, float a, float b, float c, float w, out Vector3 nT)
+        private bool TrySampleValue(int i0, int i1, int i2, float a, float b, float c, float w, out Vector3 value)
         {
-            nT = default;
+            value = default;
             Vector3 p = (a * _loPos[i0]) + (b * _loPos[i1]) + (c * _loPos[i2]);
             Vector3 n = Vector3.Normalize((a * _loNormals[i0]) + (b * _loNormals[i1]) + (c * _loNormals[i2]));
-            Vector3 tan =
-                (a * Xyz(_loTangents[i0])) + (b * Xyz(_loTangents[i1])) + (c * Xyz(_loTangents[i2]));
+
+            switch (_map)
+            {
+                case MapType.ObjectId:
+                    value = _idColor;
+                    return true;
+                case MapType.AmbientOcclusion:
+                    value = Broadcast(AmbientOcclusion(p, n));
+                    return true;
+                case MapType.Thickness:
+                    value = Broadcast(Thickness(p, n));
+                    return true;
+                default:
+                    break;
+            }
 
             var ray = new Ray(p + (n * _frontal), -n, _frontal + _rear);
             if (!_bvh.ClosestHit(ray, out Hit hit) && !(_fallback && _bvh.ClosestPoint(p, out hit)))
             {
-                return false; // cage miss and no fallback → filled later by dilation
+                return false;
             }
 
             int hi = hit.Triangle * 3;
+            if (_map == MapType.Position)
+            {
+                value = (hit.W * _hiPos[_hiIndices[hi]])
+                    + (hit.U * _hiPos[_hiIndices[hi + 1]])
+                    + (hit.V * _hiPos[_hiIndices[hi + 2]]);
+                return true;
+            }
+
             Vector3 nhi = Vector3.Normalize(
                 (hit.W * _hiNormals[_hiIndices[hi]])
                 + (hit.U * _hiNormals[_hiIndices[hi + 1]])
                 + (hit.V * _hiNormals[_hiIndices[hi + 2]]));
 
-            if (_space == NormalSpace.Object)
+            if (_map == MapType.Curvature || _space == NormalSpace.Object)
             {
-                nT = nhi; // object/model frame — encode the sampled normal directly
+                value = nhi; // object frame (curvature post-processes this normal field)
                 return true;
             }
 
+            Vector3 tan =
+                (a * Xyz(_loTangents[i0])) + (b * Xyz(_loTangents[i1])) + (c * Xyz(_loTangents[i2]));
             Vector3 bitangent = w * Vector3.Cross(n, tan);
             float bl = bitangent.Length();
             float tl = tan.Length();
@@ -293,9 +465,39 @@ public static class NormalBaker
             var local = new Vector3(
                 Vector3.Dot(nhi, tan / tl), Vector3.Dot(nhi, bitangent / bl), Vector3.Dot(nhi, n));
             float ll = local.Length();
-            nT = ll > 1e-12f ? local / ll : new Vector3(0f, 0f, 1f);
+            value = ll > 1e-12f ? local / ll : new Vector3(0f, 0f, 1f);
             return true;
         }
+
+        private float AmbientOcclusion(Vector3 p, Vector3 n)
+        {
+            Vector3 origin = p + (n * _occBias);
+            int occluded = 0;
+            for (int k = 0; k < _hemi.Count; k++)
+            {
+                if (_bvh.AnyHit(new Ray(origin, _hemi.ToFrame(k, n), _occRadius)))
+                {
+                    occluded++;
+                }
+            }
+
+            return 1f - (occluded / (float)_hemi.Count);
+        }
+
+        private float Thickness(Vector3 p, Vector3 n)
+        {
+            Vector3 origin = p - (n * _occBias);
+            float sum = 0f;
+            for (int k = 0; k < _hemi.Count; k++)
+            {
+                Vector3 dir = _hemi.ToFrame(k, -n); // into the solid
+                sum += _bvh.ClosestHit(new Ray(origin, dir, _occRadius), out Hit hit) ? hit.T : _occRadius;
+            }
+
+            return (sum / _hemi.Count) / _occRadius;
+        }
+
+        private static Vector3 Broadcast(float s) => new(s, s, s);
 
         private Vector2 ToTexel(Vector2 uv) =>
             new((uv.X - _tileU) * _res, (1f - (uv.Y - _tileV)) * _res);

@@ -53,8 +53,8 @@ internal static class Program
         };
 
         Console.WriteLine(
-            $"baked {config.Options.Resolution}x{config.Options.Resolution} {config.Options.Space} "
-            + $"{config.Options.Convention} normal map ({format}) → {config.Output}");
+            $"baked {config.Options.Resolution}x{config.Options.Resolution} {config.Options.Map} map "
+            + $"({format}) → {config.Output}");
     }
 
     private static string WritePng(Config config, BakedMap map)
@@ -88,6 +88,8 @@ internal static class Program
         double rear = 0;
         var convention = NormalMapConvention.OpenGl;
         var space = NormalSpace.Tangent;
+        var map = MapType.Normal;
+        int occlusionSamples = 32;
         bool fallback = true;
         bool bc7 = false;
 
@@ -98,6 +100,12 @@ internal static class Program
             {
                 case "-o" or "--output":
                     output = Next(args, ref i);
+                    break;
+                case "--map":
+                    map = ParseMap(Next(args, ref i));
+                    break;
+                case "--occ-samples":
+                    occlusionSamples = ParseInt(Next(args, ref i), "--occ-samples");
                     break;
                 case "--space":
                     space = ParseSpace(Next(args, ref i));
@@ -156,10 +164,24 @@ internal static class Program
             RearDistance = rear,
             Convention = convention,
             Space = space,
+            Map = map,
+            OcclusionSamples = occlusionSamples,
             NearestPointFallback = fallback,
         };
         return new Config(high, low, output, options, bc7);
     }
+
+    private static MapType ParseMap(string value) => value.ToLowerInvariant() switch
+    {
+        "normal" or "n" => MapType.Normal,
+        "position" or "pos" => MapType.Position,
+        "ao" or "occlusion" => MapType.AmbientOcclusion,
+        "thickness" => MapType.Thickness,
+        "curvature" or "curve" => MapType.Curvature,
+        "id" or "objectid" => MapType.ObjectId,
+        _ => throw new ArgumentException(
+            $"--map must be normal|position|ao|thickness|curvature|id, got '{value}'."),
+    };
 
     private static NormalSpace ParseSpace(string value) => value.ToLowerInvariant() switch
     {
@@ -231,7 +253,9 @@ internal static class Program
         Console.WriteLine($"  --samples <n>           supersample grid N (NxN rays/texel, default {d.Samples})");
         Console.WriteLine($"  --convention <gl|dx>    green-channel convention (default {d.Convention})");
         Console.WriteLine($"  --bitdepth <8|16>       bits per channel for PNG (default {d.BitDepth})");
+        Console.WriteLine($"  --map <type>            normal|position|ao|thickness|curvature|id (default {d.Map})");
         Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");
+        Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
         Console.WriteLine($"  --frontal <d>           outer cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --rear <d>              inner cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --no-fallback           don't fill cage misses from the nearest surface point");

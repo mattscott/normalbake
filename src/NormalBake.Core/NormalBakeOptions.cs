@@ -13,6 +13,28 @@ public enum NormalMapConvention
     DirectX,
 }
 
+/// <summary>The kind of map to bake. <see cref="Normal"/> is the default; the rest share the ray core.</summary>
+public enum MapType
+{
+    /// <summary>Tangent- or object-space normal map (the default).</summary>
+    Normal,
+
+    /// <summary>World/object-space hit position, normalized to the mesh bounds (RGB).</summary>
+    Position,
+
+    /// <summary>Ambient occlusion — fraction of a hemisphere that escapes nearby geometry (grayscale).</summary>
+    AmbientOcclusion,
+
+    /// <summary>Thickness — how far rays travel into the solid before exiting (grayscale).</summary>
+    Thickness,
+
+    /// <summary>Surface curvature from the normal field — convex bright, concave dark (grayscale, 0.5 = flat).</summary>
+    Curvature,
+
+    /// <summary>Per-part flat ID colour with hard (un-antialiased) boundaries.</summary>
+    ObjectId,
+}
+
 /// <summary>The frame a baked normal is expressed in.</summary>
 public enum NormalSpace
 {
@@ -57,8 +79,17 @@ public sealed class NormalBakeOptions
     /// <summary>Green-channel convention of the written normal map.</summary>
     public NormalMapConvention Convention { get; init; } = NormalMapConvention.OpenGl;
 
+    /// <summary>The kind of map to bake (normal by default).</summary>
+    public MapType Map { get; init; } = MapType.Normal;
+
     /// <summary>The frame the baked normal is expressed in (tangent-space by default).</summary>
     public NormalSpace Space { get; init; } = NormalSpace.Tangent;
+
+    /// <summary>Hemisphere ray count for AO / thickness / bent-normal maps.</summary>
+    public int OcclusionSamples { get; init; } = 32;
+
+    /// <summary>Maximum occlusion ray distance (model units); 0 auto-derives from the bounds.</summary>
+    public double OcclusionRadius { get; init; }
 
     /// <summary>When a cage ray finds no hit, sample the nearest high-poly surface point instead (fills holes).</summary>
     public bool NearestPointFallback { get; init; } = true;
