@@ -39,6 +39,25 @@ internal sealed class FbxScene
         }
     }
 
+    /// <summary>
+    /// The owning Model node's name for a geometry — the artist-facing "Max" object name (e.g. "Body_LP"),
+    /// which is usually more meaningful than the Geometry node's name. Null if the geometry has no Model.
+    /// </summary>
+    public string? ModelName(long geometryId)
+    {
+        if (_parentOf.TryGetValue(geometryId, out long modelId) && _models.TryGetValue(modelId, out FbxNode? model))
+        {
+            string? raw = model.AsString(1);
+            if (raw is not null)
+            {
+                int sep = raw.IndexOf('\0', StringComparison.Ordinal);
+                return sep >= 0 ? raw[..sep] : raw;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>The mesh-to-world matrix for the geometry with the given id (identity if untransformed).</summary>
     public Matrix4x4 MeshToWorld(long geometryId)
     {

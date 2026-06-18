@@ -67,7 +67,8 @@ public static class FbxReader
         {
             foreach (FbxNode geo in objects.ChildrenNamed("Geometry"))
             {
-                FbxPart? part = ExtractGeometry(geo, scene.MeshToWorld(geo.AsLong(0)));
+                long id = geo.AsLong(0);
+                FbxPart? part = ExtractGeometry(geo, scene.MeshToWorld(id), scene.ModelName(id));
                 if (part is not null)
                 {
                     parts.Add(part);
@@ -127,7 +128,7 @@ public static class FbxReader
         return new UvMesh(positions.ToArray(), normals.ToArray(), uvs.ToArray(), indices.ToArray());
     }
 
-    private static FbxPart? ExtractGeometry(FbxNode geo, Matrix4x4 meshToWorld)
+    private static FbxPart? ExtractGeometry(FbxNode geo, Matrix4x4 meshToWorld, string? modelName)
     {
         double[]? vertices = geo.Child("Vertices")?.AsDoubleArray(0);
         int[]? polygonVertexIndex = geo.Child("PolygonVertexIndex")?.AsIntArray(0);
@@ -193,7 +194,8 @@ public static class FbxReader
             polygonStart = pv + 1;
         }
 
-        string name = ReadName(geo);
+        // Prefer the artist-facing Model name; fall back to the Geometry node's name.
+        string name = !string.IsNullOrEmpty(modelName) ? modelName : ReadName(geo);
         return new FbxPart(name, positions.ToArray(), normals.ToArray(), uvs.ToArray(), indices.ToArray());
     }
 

@@ -14,6 +14,11 @@ internal static class Program
             return args.Length == 0 ? 1 : 0;
         }
 
+        if (Array.IndexOf(args, "--list-parts") >= 0)
+        {
+            return ListParts(args);
+        }
+
         try
         {
             Run(Parse(args));
@@ -32,6 +37,39 @@ internal static class Program
             return 2;
         }
         catch (Exception ex) when (ex is InvalidDataException or IOException or FormatException)
+        {
+            Console.Error.WriteLine($"normalbake: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int ListParts(string[] args)
+    {
+        string? path = args.FirstOrDefault(a => !a.StartsWith('-'));
+        if (path is null)
+        {
+            Console.Error.WriteLine("normalbake: --list-parts needs an .fbx path.");
+            return 2;
+        }
+
+        if (Ext(path) != ".fbx")
+        {
+            Console.Error.WriteLine("normalbake: --list-parts only supports .fbx files.");
+            return 2;
+        }
+
+        try
+        {
+            IReadOnlyList<FbxPart> parts = FbxReader.ReadParts(path);
+            Console.WriteLine($"{parts.Count} part(s) in {Path.GetFileName(path)}:");
+            for (int i = 0; i < parts.Count; i++)
+            {
+                Console.WriteLine($"  [{i}] {parts[i].Name}  ({parts[i].TriangleCount} tris)");
+            }
+
+            return 0;
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException)
         {
             Console.Error.WriteLine($"normalbake: {ex.Message}");
             return 1;
@@ -336,6 +374,7 @@ internal static class Program
         Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");
         Console.WriteLine($"  --tile-u/--tile-v <n>   UDIM tile to bake (shift UVs into 0-1; default 0)");
         Console.WriteLine($"  --part <i>              bake only FBX low-poly part i against the full high (default all)");
+        Console.WriteLine($"  --list-parts           print the FBX's part indices and mesh names, then exit");
         Console.WriteLine($"  --frontal <d>           outer cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --rear <d>              inner cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --no-fallback           don't fill cage misses from the nearest surface point");
