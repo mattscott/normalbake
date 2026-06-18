@@ -74,6 +74,42 @@ public class MapTypeTests
     }
 
     [Fact]
+    public void NormalizedHeight_CentersLevelAtGray_AndDeepensRecesses()
+    {
+        // The box's high-poly is rounded inward at the edges (recesses) and flush on the faces (no bumps).
+        // Normalized height holds the flush faces at mid-gray and drives the deepest recesses toward black,
+        // using far more contrast than the cage-scaled absolute map (which keeps everything near 0.5).
+        MeshPair pair = Primitives.Box();
+        var norm = new NormalBakeOptions { Resolution = 128, Samples = 2, Map = MapType.Height, NormalizeHeight = true };
+        var abs = new NormalBakeOptions { Resolution = 128, Samples = 2, Map = MapType.Height };
+        BakedMap normMap = NormalBaker.Bake(pair.High, pair.Low, norm, out bool[] baked);
+        BakedMap absMap = NormalBaker.Bake(pair.High, pair.Low, abs, out _);
+
+        float normMin = 1f;
+        float absMin = 1f;
+        int level = 0;
+        for (int i = 0; i < baked.Length; i++)
+        {
+            if (!baked[i])
+            {
+                continue;
+            }
+
+            float h = normMap.GetPixel(i % normMap.Width, i / normMap.Width).R;
+            normMin = MathF.Min(normMin, h);
+            absMin = MathF.Min(absMin, absMap.GetPixel(i % absMap.Width, i / absMap.Width).R);
+            if (MathF.Abs(h - 0.5f) < 0.02f)
+            {
+                level++;
+            }
+        }
+
+        Assert.True(level > 200, $"flush faces should stay mid-gray, got {level}");
+        Assert.True(normMin < 0.05f, $"deepest recess should be ~black, got {normMin}");
+        Assert.True(normMin < absMin, "normalized drives recesses darker than the cage-scaled map");
+    }
+
+    [Fact]
     public void AmbientOcclusion_ConvexIsOpen_OccluderDarkens()
     {
         MeshPair sp = Primitives.Sphere();

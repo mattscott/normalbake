@@ -179,6 +179,10 @@ public static class NormalBaker
         {
             ResolveCurvature(averaged, covered, res, map);
         }
+        else if (options.Map == MapType.Height && options.NormalizeHeight)
+        {
+            ResolveNormalizedHeight(averaged, covered, res, map);
+        }
         else if (options.Map == MapType.Coverage)
         {
             int maxSamples = Math.Max(1, options.Samples);
@@ -239,6 +243,47 @@ public static class NormalBaker
                     SafeNormalize(value.Z - bounds.Min.Z, extent.Z));
             default: // AO, Thickness, ObjectId already carry [0,1] RGB/grayscale values
                 return Vector3.Clamp(value, Vector3.Zero, Vector3.One);
+        }
+    }
+
+    private static void ResolveNormalizedHeight(Vector3[] heights, bool[] covered, int res, BakedMap map)
+    {
+        // Neutral (no displacement) sits at mid-gray; the recess and bump sides are each scaled by a
+        // robust percentile (2nd/98th) so recesses → black, bumps → white at full contrast, with outliers
+        // clamped. This beats a literal min→max stretch when most of the surface is flush (a spike at
+        // level with an asymmetric detail tail would otherwise crush everything to one end).
+        var values = new List<float>();
+        for (int i = 0; i < covered.Length; i++)
+        {
+            if (covered[i])
+            {
+                values.Add(heights[i].X);
+            }
+        }
+
+        if (values.Count == 0)
+        {
+            return;
+        }
+
+        values.Sort();
+        float lo = values[(int)(values.Count * 0.02f)];
+        float hi = values[Math.Min(values.Count - 1, (int)(values.Count * 0.98f))];
+        float negSpread = MathF.Max(1e-6f, -lo); // 0 → deepest recess
+        float posSpread = MathF.Max(1e-6f, hi);  // 0 → highest bump
+
+        for (int i = 0; i < covered.Length; i++)
+        {
+            if (!covered[i])
+            {
+                continue;
+            }
+
+            float h = heights[i].X;
+            float g = h >= 0f
+                ? 0.5f + (0.5f * MathF.Min(1f, h / posSpread))
+                : 0.5f - (0.5f * MathF.Min(1f, -h / negSpread));
+            map.SetPixel(i % res, i / res, g, g, g);
         }
     }
 
@@ -365,6 +410,7 @@ public static class NormalBaker
         private readonly Bvh _bvh;
         private readonly MapType _map;
         private readonly NormalSpace _space;
+        private readonly bool _normalizeHeight;
         private readonly bool _fallback;
         private readonly float _frontal;
         private readonly float _rear;
@@ -392,6 +438,7 @@ public static class NormalBaker
             _bvh = bvh;
             _map = options.Map;
             _space = options.Space;
+            _normalizeHeight = options.NormalizeHeight;
             _fallback = options.NearestPointFallback;
             _frontal = frontal;
             _rear = rear;
@@ -590,8 +637,15 @@ public static class NormalBaker
                 {
                     // signed distance low→high along the normal; 0.5 = level, >0.5 = out, <0.5 = recess
                     float signed = Vector3.Dot(hitPoint - p, n);
-                    float range = MathF.Max(_frontal, _rear);
-                    value = Broadcast(Math.Clamp(0.5f + (signed / (2f * range)), 0f, 1f));
+                    if (_normalizeHeight)
+                    {
+                        value = Broadcast(signed); // raw — Resolve stretches min→0, max→1
+                    }
+                    else
+                    {
+                        float range = MathF.Max(_frontal, _rear);
+                        value = Broadcast(Math.Clamp(0.5f + (signed / (2f * range)), 0f, 1f));
+                    }
                 }
                 else
                 {

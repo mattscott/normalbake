@@ -128,6 +128,7 @@ internal static class Program
         int part = -1;
         bool fallback = true;
         bool lenient = false;
+        bool normalizeHeight = false;
         bool bc7 = false;
 
         for (int i = 0; i < args.Length; i++)
@@ -167,6 +168,9 @@ internal static class Program
                     break;
                 case "--lenient":
                     lenient = true;
+                    break;
+                case "--normalize":
+                    normalizeHeight = true;
                     break;
                 case "--bc7":
                     bc7 = true;
@@ -226,6 +230,7 @@ internal static class Program
             Map = map,
             OcclusionSamples = occlusionSamples,
             BlurRadius = blurRadius,
+            NormalizeHeight = normalizeHeight,
             Threads = threads,
             TileU = tileU,
             TileV = tileV,
@@ -327,6 +332,7 @@ internal static class Program
         Console.WriteLine($"  --strength <f>          tangent normal depth scale (1=as-baked, 2=2x depth; aka --depth)");
         Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
         Console.WriteLine($"  --blur <px>             coverage-aware smoothing radius for ao/curvature (default 0)");
+        Console.WriteLine($"  --normalize             height map: stretch lowest->black, highest->white (full contrast)");
         Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");
         Console.WriteLine($"  --tile-u/--tile-v <n>   UDIM tile to bake (shift UVs into 0-1; default 0)");
         Console.WriteLine($"  --part <i>              bake only FBX low-poly part i against the full high (default all)");

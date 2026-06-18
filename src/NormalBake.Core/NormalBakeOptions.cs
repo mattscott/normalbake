@@ -103,6 +103,10 @@ public sealed class NormalBakeOptions
     /// <summary>Post-bake coverage-aware Gaussian blur radius in texels (0 = off). Smooths AO/curvature.</summary>
     public int BlurRadius { get; init; }
 
+    /// <summary>For the height map: auto-scale to full contrast around a mid-gray neutral — recesses toward
+    /// black, bumps toward white — using a robust per-side percentile instead of the wide cage envelope.</summary>
+    public bool NormalizeHeight { get; init; }
+
     /// <summary>Maximum occlusion ray distance (model units); 0 auto-derives from the bounds.</summary>
     public double OcclusionRadius { get; init; }
 
