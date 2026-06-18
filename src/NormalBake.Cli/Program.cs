@@ -116,6 +116,7 @@ internal static class Program
         int bitDepth = 16;
         double frontal = 0;
         double rear = 0;
+        float strength = 1f;
         var convention = NormalMapConvention.OpenGl;
         var space = NormalSpace.Tangent;
         var map = MapType.Normal;
@@ -185,6 +186,9 @@ internal static class Program
                 case "--rear":
                     rear = ParseFloat(Next(args, ref i), "--rear");
                     break;
+                case "--strength" or "--depth":
+                    strength = (float)ParseFloat(Next(args, ref i), "--strength");
+                    break;
                 case "--convention":
                     convention = ParseConvention(Next(args, ref i));
                     break;
@@ -218,6 +222,7 @@ internal static class Program
             RearDistance = rear,
             Convention = convention,
             Space = space,
+            NormalStrength = strength,
             Map = map,
             OcclusionSamples = occlusionSamples,
             BlurRadius = blurRadius,
@@ -319,6 +324,7 @@ internal static class Program
         Console.WriteLine($"  --bitdepth <8|16>       bits per channel for PNG (default {d.BitDepth})");
         Console.WriteLine($"  --map <type>            normal|height|position|ao|thickness|curvature|id|mask|coverage (default {d.Map})");
         Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");
+        Console.WriteLine($"  --strength <f>          tangent normal depth scale (1=as-baked, 2=2x depth; aka --depth)");
         Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
         Console.WriteLine($"  --blur <px>             coverage-aware smoothing radius for ao/curvature (default 0)");
         Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");

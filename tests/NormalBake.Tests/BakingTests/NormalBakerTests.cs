@@ -222,6 +222,50 @@ public class NormalBakerTests
         Assert.True(anyGreenDiff, "expected some texels where green actually differs");
     }
 
+    [Fact]
+    public void ApplyStrength_ScalesTangentTilt_AndStaysUnit()
+    {
+        Assert.Equal(new Vector3(0f, 0f, 1f), NormalEncoder.ApplyStrength(new Vector3(0f, 0f, 1f), 2f));
+
+        Vector3 n = Vector3.Normalize(new Vector3(0.3f, 0f, 0.9f));
+        Vector3 s = NormalEncoder.ApplyStrength(n, 2f);
+        Assert.True(MathF.Abs(s.Length() - 1f) < 1e-4f);
+        Assert.True(MathF.Abs(s.X - (n.X * 2f)) < 1e-4f); // X/Y doubled
+        Assert.True(s.Z < n.Z);                           // steeper (smaller Z)
+
+        Vector3 maxed = NormalEncoder.ApplyStrength(new Vector3(0.8f, 0f, 0.6f), 2f);
+        Assert.True(maxed.Z < 1e-3f); // tilt clamps at the horizon
+    }
+
+    [Fact]
+    public void NormalStrength_DeepensBakedNormals()
+    {
+        MeshPair pair = Primitives.Box();
+        BakedMap weak = NormalBaker.Bake(pair.High, pair.Low, StrengthOptions(1f), out bool[] mask);
+        BakedMap strong = NormalBaker.Bake(pair.High, pair.Low, StrengthOptions(2f), out _);
+
+        Assert.True(MeanTilt(strong, mask) > MeanTilt(weak, mask) * 1.2f, "strength 2 should deepen the normals");
+    }
+
+    private static NormalBakeOptions StrengthOptions(float strength) =>
+        new() { Resolution = 128, Samples = 2, NormalStrength = strength };
+
+    private static float MeanTilt(BakedMap map, bool[] mask)
+    {
+        double sum = 0;
+        int n = 0;
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i])
+            {
+                sum += 1f - DecodedNormal(map, i).Z; // 0 = flat, larger = more tilted
+                n++;
+            }
+        }
+
+        return n > 0 ? (float)(sum / n) : 0f;
+    }
+
     private static Vector3 DecodedNormal(BakedMap map, int index)
     {
         (float r, float g, float b) = map.GetPixel(index % map.Width, index / map.Width);

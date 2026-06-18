@@ -23,6 +23,22 @@ public static class NormalEncoder
         return (n * 0.5f) + new Vector3(0.5f);
     }
 
+    /// <summary>
+    /// Scales a tangent-space normal's "depth" by <paramref name="strength"/>: the X/Y (tangent-plane)
+    /// components are multiplied and Z is recomputed to renormalize. <c>2</c> ≈ twice the apparent depth,
+    /// <c>&lt;1</c> flatter, <c>1</c> unchanged. This is the same operation as Unity's Normal Strength /
+    /// Substance's Normal Intensity — a <b>stylization</b>, not a physically-correct bake.
+    /// </summary>
+    public static Vector3 ApplyStrength(Vector3 tangentSpaceNormal, float strength)
+    {
+        float x = tangentSpaceNormal.X * strength;
+        float y = tangentSpaceNormal.Y * strength;
+        float z2 = 1f - ((x * x) + (y * y));
+        return z2 > 1e-8f
+            ? new Vector3(x, y, MathF.Sqrt(z2))
+            : Vector3.Normalize(new Vector3(x, y, 0f)); // tilt maxed out at the horizon
+    }
+
     /// <summary>Decodes linear RGB back to a tangent-space normal (inverse of <see cref="Encode"/>).</summary>
     public static Vector3 Decode(Vector3 rgb, NormalMapConvention convention)
     {

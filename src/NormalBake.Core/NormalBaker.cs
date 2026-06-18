@@ -225,6 +225,11 @@ public static class NormalBaker
             case MapType.Normal:
                 float len = value.Length();
                 Vector3 nT = len > 1e-12f ? value / len : new Vector3(0f, 0f, 1f);
+                if (options.Space == NormalSpace.Tangent && options.NormalStrength != 1f)
+                {
+                    nT = NormalEncoder.ApplyStrength(nT, options.NormalStrength);
+                }
+
                 return NormalEncoder.Encode(nT, options.Convention);
             case MapType.Position:
                 Vector3 extent = bounds.Extent;

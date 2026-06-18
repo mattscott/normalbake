@@ -94,6 +94,9 @@ public sealed class NormalBakeOptions
     /// <summary>The frame the baked normal is expressed in (tangent-space by default).</summary>
     public NormalSpace Space { get; init; } = NormalSpace.Tangent;
 
+    /// <summary>Tangent-space normal depth scale (1 = unchanged, 2 = twice the apparent depth, &lt;1 flatter).</summary>
+    public float NormalStrength { get; init; } = 1f;
+
     /// <summary>Hemisphere ray count for AO / thickness / bent-normal maps.</summary>
     public int OcclusionSamples { get; init; } = 32;
 
