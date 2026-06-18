@@ -234,6 +234,7 @@ internal static class Program
     {
         "normal" or "n" => MapType.Normal,
         "position" or "pos" => MapType.Position,
+        "height" or "displacement" or "disp" => MapType.Height,
         "ao" or "occlusion" => MapType.AmbientOcclusion,
         "thickness" => MapType.Thickness,
         "curvature" or "curve" => MapType.Curvature,
@@ -241,7 +242,7 @@ internal static class Program
         "mask" => MapType.Mask,
         "coverage" => MapType.Coverage,
         _ => throw new ArgumentException(
-            $"--map must be normal|position|ao|thickness|curvature|id|mask|coverage, got '{value}'."),
+            $"--map must be normal|height|position|ao|thickness|curvature|id|mask|coverage, got '{value}'."),
     };
 
     private static NormalSpace ParseSpace(string value) => value.ToLowerInvariant() switch
@@ -316,7 +317,7 @@ internal static class Program
         Console.WriteLine($"  --samples <n>           supersample grid N (NxN rays/texel, default {d.Samples})");
         Console.WriteLine($"  --convention <gl|dx|unreal>  green-channel convention (default {d.Convention}; unreal=dx, green-down)");
         Console.WriteLine($"  --bitdepth <8|16>       bits per channel for PNG (default {d.BitDepth})");
-        Console.WriteLine($"  --map <type>            normal|position|ao|thickness|curvature|id|mask|coverage (default {d.Map})");
+        Console.WriteLine($"  --map <type>            normal|height|position|ao|thickness|curvature|id|mask|coverage (default {d.Map})");
         Console.WriteLine($"  --space <tangent|object> normal space (default {d.Space})");
         Console.WriteLine($"  --occ-samples <n>       hemisphere rays for ao/thickness (default {d.OcclusionSamples})");
         Console.WriteLine($"  --blur <px>             coverage-aware smoothing radius for ao/curvature (default 0)");

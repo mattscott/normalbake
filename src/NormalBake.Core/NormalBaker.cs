@@ -576,11 +576,23 @@ public static class NormalBaker
             }
 
             int hi = hit.Triangle * 3;
-            if (_map == MapType.Position)
+            if (_map is MapType.Position or MapType.Height)
             {
-                value = (hit.W * _hiPos[_hiIndices[hi]])
+                Vector3 hitPoint = (hit.W * _hiPos[_hiIndices[hi]])
                     + (hit.U * _hiPos[_hiIndices[hi + 1]])
                     + (hit.V * _hiPos[_hiIndices[hi + 2]]);
+                if (_map == MapType.Height)
+                {
+                    // signed distance low→high along the normal; 0.5 = level, >0.5 = out, <0.5 = recess
+                    float signed = Vector3.Dot(hitPoint - p, n);
+                    float range = MathF.Max(_frontal, _rear);
+                    value = Broadcast(Math.Clamp(0.5f + (signed / (2f * range)), 0f, 1f));
+                }
+                else
+                {
+                    value = hitPoint;
+                }
+
                 return true;
             }
 

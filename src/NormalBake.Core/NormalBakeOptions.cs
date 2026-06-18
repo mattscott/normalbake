@@ -22,6 +22,9 @@ public enum MapType
     /// <summary>World/object-space hit position, normalized to the mesh bounds (RGB).</summary>
     Position,
 
+    /// <summary>Height/displacement — signed distance from the low surface to the high along the normal (grayscale, 0.5 = level).</summary>
+    Height,
+
     /// <summary>Ambient occlusion — fraction of a hemisphere that escapes nearby geometry (grayscale).</summary>
     AmbientOcclusion,
 

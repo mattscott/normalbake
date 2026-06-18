@@ -43,6 +43,37 @@ public class MapTypeTests
     }
 
     [Fact]
+    public void Height_LevelOnFlatFaces_RecessedAtBeveledEdges()
+    {
+        MeshPair pair = Primitives.Box();
+        var opt = new NormalBakeOptions { Resolution = 128, Samples = 2, Map = MapType.Height };
+        BakedMap map = NormalBaker.Bake(pair.High, pair.Low, opt, out bool[] baked);
+
+        int level = 0;
+        int recessed = 0;
+        for (int i = 0; i < baked.Length; i++)
+        {
+            if (!baked[i])
+            {
+                continue;
+            }
+
+            float h = map.GetPixel(i % map.Width, i / map.Width).R;
+            if (MathF.Abs(h - 0.5f) < 0.02f)
+            {
+                level++; // flat faces coincide → 0.5
+            }
+            else if (h < 0.45f)
+            {
+                recessed++; // rounded-in edges sit below the flat low-poly
+            }
+        }
+
+        Assert.True(level > 200, $"expected level (0.5) flat faces, got {level}");
+        Assert.True(recessed > 20, $"expected recessed beveled edges, got {recessed}");
+    }
+
+    [Fact]
     public void AmbientOcclusion_ConvexIsOpen_OccluderDarkens()
     {
         MeshPair sp = Primitives.Sphere();
@@ -227,6 +258,7 @@ public class MapTypeTests
     [Theory]
     [InlineData(MapType.Normal)]
     [InlineData(MapType.Position)]
+    [InlineData(MapType.Height)]
     [InlineData(MapType.AmbientOcclusion)]
     [InlineData(MapType.Thickness)]
     [InlineData(MapType.Curvature)]
