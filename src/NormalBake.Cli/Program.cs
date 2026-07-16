@@ -78,8 +78,8 @@ internal static class Program
 
     private static void Run(Config config)
     {
-        Mesh high = ReadHigh(config.High);
-        UvMesh low = ReadLow(config.Low, config.Part);
+        Mesh high = ReadHigh(config.High, config.HighFilter);
+        UvMesh low = ReadLow(config.Low, config.Part, config.LowFilter);
         BakedMap map = NormalBaker.Bake(high, low, config.Options);
 
         string ext = Path.GetExtension(config.Output).ToLowerInvariant();
@@ -95,15 +95,20 @@ internal static class Program
             + $"({format}) → {config.Output}");
     }
 
-    private static Mesh ReadHigh(string path) => Ext(path) switch
+    private static Mesh ReadHigh(string path, string? filter) => Ext(path) switch
     {
-        ".fbx" => FbxReader.ReadMesh(path),
+        ".fbx" => FbxReader.ReadMesh(path, filter),
         ".glb" or ".gltf" => GltfReader.ReadMesh(path),
         _ => ObjReader.ReadMesh(path),
     };
 
-    private static UvMesh ReadLow(string path, int part)
+    private static UvMesh ReadLow(string path, int part, string? filter)
     {
+        if (!string.IsNullOrEmpty(filter) && Ext(path) == ".fbx")
+        {
+            return FbxReader.ReadUvMesh(path, filter);
+        }
+
         if (part >= 0 && Ext(path) == ".fbx")
         {
             IReadOnlyList<FbxPart> parts = FbxReader.ReadParts(path);
@@ -164,6 +169,8 @@ internal static class Program
         int tileU = 0;
         int tileV = 0;
         int part = -1;
+        string? highFilter = null;
+        string? lowFilter = null;
         bool fallback = true;
         bool lenient = false;
         bool normalizeHeight = false;
@@ -197,6 +204,12 @@ internal static class Program
                     break;
                 case "--part":
                     part = ParseInt(Next(args, ref i), "--part");
+                    break;
+                case "--high-filter":
+                    highFilter = Next(args, ref i);
+                    break;
+                case "--low-filter":
+                    lowFilter = Next(args, ref i);
                     break;
                 case "--space":
                     space = ParseSpace(Next(args, ref i));
@@ -275,7 +288,7 @@ internal static class Program
             NearestPointFallback = fallback,
             StrictUvValidation = !lenient,
         };
-        return new Config(high, low, output, options, bc7, part);
+        return new Config(high, low, output, options, bc7, part, highFilter, lowFilter);
     }
 
     private static MapType ParseMap(string value) => value.ToLowerInvariant() switch
@@ -374,6 +387,8 @@ internal static class Program
         Console.WriteLine($"  --threads <n>           worker threads (-1 = all cores, default {d.Threads})");
         Console.WriteLine($"  --tile-u/--tile-v <n>   UDIM tile to bake (shift UVs into 0-1; default 0)");
         Console.WriteLine($"  --part <i>              bake only FBX low-poly part i against the full high (default all)");
+        Console.WriteLine($"  --low-filter <substr>  merge only low-poly FBX parts whose name contains substr (e.g. LOD0)");
+        Console.WriteLine($"  --high-filter <substr> merge only high-poly FBX parts whose name contains substr");
         Console.WriteLine($"  --list-parts           print the FBX's part indices and mesh names, then exit");
         Console.WriteLine($"  --frontal <d>           outer cage distance (0 = auto from bounds)");
         Console.WriteLine($"  --rear <d>              inner cage distance (0 = auto from bounds)");
@@ -385,5 +400,6 @@ internal static class Program
     }
 
     private sealed record Config(
-        string High, string Low, string Output, NormalBakeOptions Options, bool Bc7, int Part);
+        string High, string Low, string Output, NormalBakeOptions Options, bool Bc7, int Part,
+        string? HighFilter, string? LowFilter);
 }

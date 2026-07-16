@@ -84,10 +84,36 @@ public static class FbxReader
         return parts;
     }
 
-    /// <summary>Reads and merges all parts into one high-poly <see cref="Mesh"/> (UVs ignored).</summary>
-    public static Mesh ReadMesh(string path)
+    /// <summary>Keeps only parts whose name contains <paramref name="nameFilter"/> (case-insensitive).</summary>
+    private static IReadOnlyList<FbxPart> Filter(IReadOnlyList<FbxPart> parts, string? nameFilter)
     {
-        IReadOnlyList<FbxPart> parts = ReadParts(path);
+        if (string.IsNullOrEmpty(nameFilter))
+        {
+            return parts;
+        }
+
+        var kept = parts
+            .Where(p => p.Name.Contains(nameFilter, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (kept.Count == 0)
+        {
+            throw new InvalidDataException($"no FBX parts match the name filter '{nameFilter}'.");
+        }
+
+        return kept;
+    }
+
+    /// <summary>Reads and merges all parts into one high-poly <see cref="Mesh"/> (UVs ignored).</summary>
+    public static Mesh ReadMesh(string path) => ReadMesh(path, null);
+
+    /// <summary>
+    /// Reads and merges parts into one high-poly <see cref="Mesh"/>. When <paramref name="nameFilter"/> is
+    /// non-empty, only parts whose name contains it (case-insensitive) are merged — useful when a file
+    /// mixes meshes (e.g. both <c>_HighPoly</c> and <c>_LOD0</c> parts in one export).
+    /// </summary>
+    public static Mesh ReadMesh(string path, string? nameFilter)
+    {
+        IReadOnlyList<FbxPart> parts = Filter(ReadParts(path), nameFilter);
         var positions = new List<Vector3>();
         var normals = new List<Vector3>();
         var indices = new List<int>();
@@ -106,9 +132,15 @@ public static class FbxReader
     }
 
     /// <summary>Reads and merges all parts into one low-poly <see cref="UvMesh"/>.</summary>
-    public static UvMesh ReadUvMesh(string path)
+    public static UvMesh ReadUvMesh(string path) => ReadUvMesh(path, null);
+
+    /// <summary>
+    /// Reads and merges parts into one low-poly <see cref="UvMesh"/>. When <paramref name="nameFilter"/> is
+    /// non-empty, only parts whose name contains it (case-insensitive) are merged.
+    /// </summary>
+    public static UvMesh ReadUvMesh(string path, string? nameFilter)
     {
-        IReadOnlyList<FbxPart> parts = ReadParts(path);
+        IReadOnlyList<FbxPart> parts = Filter(ReadParts(path), nameFilter);
         var positions = new List<Vector3>();
         var normals = new List<Vector3>();
         var uvs = new List<Vector2>();
