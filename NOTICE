@@ -27,7 +27,7 @@ Algorithmic influences and attributions (clean-room — read for understanding)
   Reference implementation "MikkTSpace": zlib license. A clean-room C# port, if
   used, keeps the zlib notice and does not misrepresent origin.
 
-See Agents/Documents/references.md for the full bibliography.
+See docs/design/references.md for the full bibliography.
 
 ================================================================================
 Reference oracle (test-only; not shipped, not linked)
@@ -41,7 +41,7 @@ redistributed.
 Third-party runtime dependencies
 ================================================================================
 The core ships dependency-light. Permissively-licensed managed packages are added
-per phase (Agents/Plans/02-phase-roadmap.md) and listed here as they land:
+per phase (docs/plans/02-phase-roadmap.md) and listed here as they land:
 
   BCnEncoder.NET   BC5/BC7 + DDS encode/decode  (MIT OR Unlicense)
                    (pulls CommunityToolkit.HighPerformance, MIT)

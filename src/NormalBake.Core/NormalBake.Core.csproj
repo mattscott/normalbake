@@ -5,7 +5,7 @@
     <AssemblyName>NormalBake.Core</AssemblyName>
     <Description>Normal-map baker (projection ray-cast + MikkTSpace tangents + managed BVH) — managed, dependency-light.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Core keeps a dependency-light runtime graph (see Agents/Documents/08). -->
+    <!-- Core keeps a dependency-light runtime graph (see docs/design/08). -->
   </PropertyGroup>
 
   <ItemGroup>

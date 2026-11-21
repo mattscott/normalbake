@@ -7,7 +7,7 @@ namespace NormalBake.Core;
 /// (12 bins × 3 axes) and queried with ordered front-to-back traversal. Leaves hold a contiguous slice
 /// of a reordered triangle-index array; intersection uses the watertight <see cref="RayTriangle"/> test
 /// with a cage-bounded <c>tMax</c>. Built once, queried read-only — safe to share across bake threads.
-/// (<c>Agents/Documents/06-acceleration-and-performance.md</c>.)
+/// (<c>docs/design/06-acceleration-and-performance.md</c>.)
 /// </summary>
 public sealed class Bvh : IRayTracer
 {

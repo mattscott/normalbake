@@ -16,7 +16,7 @@ images.
 4. write the result as a PNG golden under `tests/golden/`.
 
 Blender is the primary oracle because it is **free, open, cross-platform, scriptable, deterministic,
-and MikkTSpace-synced** — see [`../../Agents/Documents/08-prior-art-tools-and-libraries.md`](../../Agents/Documents/08-prior-art-tools-and-libraries.md) §2.
+and MikkTSpace-synced** — see [`../../docs/design/08-prior-art-tools-and-libraries.md`](../../docs/design/08-prior-art-tools-and-libraries.md) §2.
 
 ## Secondary cross-check — xNormal
 
@@ -26,7 +26,7 @@ standard — not as the primary CI oracle.
 
 ## Comparison metrics
 
-Per the testing plan ([`08` §4](../../Agents/Documents/08-prior-art-tools-and-libraries.md)):
+Per the testing plan ([`08` §4](../../docs/design/08-prior-art-tools-and-libraries.md)):
 hard-gate on **per-pixel tolerance** (small epsilon + small allowed failing fraction), soft-gate on
 **SSIM/PSNR** trend, and emit a **FLIP** perceptual error map as a CI artifact on failure. Decode-compare
 BC5/BC7 outputs against the uncompressed golden so compression error is not conflated with bake error.

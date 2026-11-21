@@ -8,7 +8,7 @@ namespace NormalBake.Core;
 /// <see cref="NormalBakeOptions.Map"/>: object/world position, ambient occlusion and thickness
 /// (hemisphere sampling), curvature (normal-field derivative), and per-part object ID. Pipeline: validate
 /// UVs (P1) → tangents (P2) → BVH (P3) → per-texel rasterize + cage ray / hemisphere → resolve over a
-/// coverage mask → Extend dilate. See <c>Agents/Documents/02-baking-algorithm.md</c>.
+/// coverage mask → Extend dilate. See <c>docs/design/02-baking-algorithm.md</c>.
 /// </summary>
 public static class NormalBaker
 {

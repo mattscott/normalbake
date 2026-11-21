@@ -5,7 +5,7 @@ namespace NormalBake.Core;
 /// <summary>
 /// A fixed, cosine-weighted hemisphere direction set (local, around +Z) for AO / thickness / bent-normal
 /// sampling. The directions come from the deterministic Hammersley sequence (no RNG), so bakes stay
-/// bit-reproducible (the determinism rule, <c>Agents/Plans/01-architecture.md</c>). The caller builds a
+/// bit-reproducible (the determinism rule, <c>docs/plans/01-architecture.md</c>). The caller builds a
 /// surface frame — <b>rotated per texel</b> — and combines it with <see cref="Local"/> to avoid the
 /// banding a shared, un-rotated sample set produces.
 /// </summary>

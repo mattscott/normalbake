@@ -15,7 +15,7 @@
     THE UV CAVEAT: dense scan meshes (Stanford bunny/armadillo/etc.) are high-poly ONLY — they have no
     low-poly + UV counterpart, and UV unwrapping is out of scope for NormalBake. Generating a matching
     UV-unwrapped low-poly is a one-time scripted Blender prep step (decimate -> smart UV unwrap ->
-    export); see Agents/Prompts/01-implementation-kickoff.md §9. This script fetches only assets that
+    export); see tests/corpus/README.md. This script fetches only assets that
     already ship UV-unwrapped, plus the Stanford sources for that later prep step.
 
 .EXAMPLE

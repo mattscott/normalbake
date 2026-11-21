@@ -9,7 +9,7 @@ zero-native-dependency build.
 
 ## Why this is achievable now
 
-The research ([../Documents/](../Documents/)) confirms that high-to-low normal baking is a
+The research ([../design/](../design/)) confirms that high-to-low normal baking is a
 **well-understood, decades-old method**, not open research: for each low-poly UV texel, recover its
 surface point + tangent frame, cast a cage-guided ray to the high-poly, sample the high-poly's smooth
 normal, and re-express it in the low-poly's tangent frame (Cignoni et al. 1998; Cohen/Olano/Manocha
@@ -32,7 +32,7 @@ hard problems are *fidelity* (tangent-space sync) and *speed* (ray throughput), 
 
 **Out (v1.0 non-goals):**
 - **UV unwrapping** — the low-poly arrives with UVs from the separate UV-unwrap tool; NormalBake only
-  validates them ([../Documents/05-uvs-and-dilation.md](../Documents/05-uvs-and-dilation.md) §1).
+  validates them ([../design/05-uvs-and-dilation.md](../design/05-uvs-and-dilation.md) §1).
 - GPU baking (CPU is portable + deterministic; GPU is a post-1.0 optional accelerator).
 - In-app skew-painting UI.
 - Displacement/height as a *primary* deliverable.
@@ -66,12 +66,12 @@ hard problems are *fidelity* (tangent-space sync) and *speed* (ray throughput), 
 1. **Tangent-basis sync (MikkTSpace fidelity) — the #1 correctness risk.** A map only decodes
    correctly if the renderer rebuilds the *exact* basis the baker used. Mitigate: P2 ports MikkTSpace
    and validates it **bit-close to the C reference**; the baker decodes with the unnormalized
-   interpolated frame and **emits the tangents** ([../Documents/03-tangent-space-and-mikktspace.md](../Documents/03-tangent-space-and-mikktspace.md)).
+   interpolated frame and **emits the tangents** ([../design/03-tangent-space-and-mikktspace.md](../design/03-tangent-space-and-mikktspace.md)).
 2. **BVH correctness & speed in managed C#.** A 4K@4× bake is ~268M rays at a multi-million-tri
    high-poly. Mitigate: **Woop watertight** ray-tri (no cracks/speckle), binned-SAH/SBVH, short
-   cage-bounded `t_max`, wide-node SIMD in P7; validate vs brute force ([../Documents/06-acceleration-and-performance.md](../Documents/06-acceleration-and-performance.md)).
+   cage-bounded `t_max`, wide-node SIMD in P7; validate vs brute force ([../design/06-acceleration-and-performance.md](../design/06-acceleration-and-performance.md)).
 3. **Cage/projection artifacts** (skew, holes, bleed). Mitigate: averaged normals + nearest-point
-   fallback + explicit cage + match-by-name ([../Documents/04-cage-and-projection.md](../Documents/04-cage-and-projection.md), [../Documents/07-quality-artifacts-and-aa.md](../Documents/07-quality-artifacts-and-aa.md)).
+   fallback + explicit cage + match-by-name ([../design/04-cage-and-projection.md](../design/04-cage-and-projection.md), [../design/07-quality-artifacts-and-aa.md](../design/07-quality-artifacts-and-aa.md)).
 4. **Upstream UV-contract violations.** Mitigate: validate the incoming UVs (non-overlap, seams at
    hard edges, gutters ≥ 2× padding) and **fail fast** with a clear message.
 

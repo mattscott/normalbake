@@ -8,7 +8,7 @@ namespace NormalBake.IO;
 /// channel; samples are big-endian per the PNG spec, scanlines use filter type 0 (None), and the image
 /// data is a single zlib stream (<see cref="ZLibStream"/> — deterministic for a given input). No
 /// <c>gAMA</c>/<c>sRGB</c>/<c>iCCP</c> chunk is written: a normal map is <b>linear, non-color</b> data
-/// and must not carry a color transform (<c>Agents/Documents/01-normal-mapping-fundamentals.md</c>).
+/// and must not carry a color transform (<c>docs/design/01-normal-mapping-fundamentals.md</c>).
 /// 16-bit is the default because it avoids visible banding on smooth normals.
 /// </summary>
 public static class PngWriter

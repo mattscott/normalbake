@@ -2,7 +2,7 @@ namespace NormalBake.IO;
 
 /// <summary>
 /// Entry point for mesh and image I/O. The readers/writers (OBJ meshes, PNG/EXR/DDS images) are
-/// implemented in Phase 1+; see <c>Agents/Plans/02-phase-roadmap.md</c>. This placeholder anchors the
+/// implemented in Phase 1+; see <c>docs/plans/02-phase-roadmap.md</c>. This placeholder anchors the
 /// namespace and records the formats the I/O layer starts with.
 /// </summary>
 public static class MeshIo

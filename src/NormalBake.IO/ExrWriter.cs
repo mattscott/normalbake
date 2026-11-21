@@ -8,7 +8,7 @@ namespace NormalBake.IO;
 /// A small, dependency-free OpenEXR writer: 32-bit float, uncompressed scanline, RGB. EXR archives the
 /// baked values at full float precision (no 8/16-bit quantization). Channels are stored alphabetically
 /// (B, G, R) per the spec; data is little-endian. (Jither.OpenEXR is not on NuGet, so this is hand-rolled
-/// in the same spirit as the PNG writer — see <c>Agents/Plans/loop-log.md</c>.)
+/// in the same spirit as the PNG writer.)
 /// </summary>
 public static class ExrWriter
 {

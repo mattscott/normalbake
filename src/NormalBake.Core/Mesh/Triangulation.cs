@@ -7,7 +7,7 @@ namespace NormalBake.Core;
 /// the <b>shorter 3D diagonal</b> (order-independent and mirror-safe, matching MikkTSpace); larger
 /// polygons fan from their first corner. Triangulating exactly once and feeding the same triangles to
 /// the OBJ reader, the tangent solver, and the UV rasterizer is what prevents X-shaped shading seams
-/// (<c>Agents/Documents/02-baking-algorithm.md</c> §4, <c>03-tangent-space-and-mikktspace.md</c> §4).
+/// (<c>docs/design/02-baking-algorithm.md</c> §4, <c>03-tangent-space-and-mikktspace.md</c> §4).
 /// </summary>
 internal static class Triangulation
 {

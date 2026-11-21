@@ -12,7 +12,7 @@ Usage (Blender 3.6+ / 4.x):
         --margin 16 --convention opengl
 
 Determinism: CPU device, a fixed Cycles sample count, and the **Extend** bake margin (the only correct
-margin for tangent-space normals — see ../../Agents/Documents/05-uvs-and-dilation.md §4.2). The bake
+margin for tangent-space normals — see ../../docs/design/05-uvs-and-dilation.md §4.2). The bake
 image is tagged Non-Color (linear) and saved as 16-bit PNG to match NormalBake's default output.
 """
 

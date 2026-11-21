@@ -1,6 +1,6 @@
 # NormalBake — Implementation Plans
 
-The build plan for a managed-C# normal-map baker, based on the research in [../Documents/](../Documents/).
+The build plan for a managed-C# normal-map baker, based on the research in [../design/](../design/).
 Direction in one line: **for each low-poly UV texel, cage-cast a ray to the high-poly and write its
 smooth normal in the low-poly's MikkTSpace tangent frame** — a clean-room reimplementation of the
 classic projection bake (Cignoni et al. 1998) with a managed BVH and a MikkTSpace-faithful basis.
@@ -26,4 +26,4 @@ The first *demoable* milestone (a baked tangent-space normal map out) is end of 
 **Pipeline context.** NormalBake is the **baking** stage of a three-tool chain — *quad-remesher
 (retopology) → UV-unwrap tool → NormalBake*. The low-poly **arrives with UVs**; NormalBake validates
 them and bakes. The upstream quad-remesher and UV-unwrap tool are separate tools; UV unwrapping is
-explicitly **out of scope** (see [../Documents/05-uvs-and-dilation.md](../Documents/05-uvs-and-dilation.md) §1).
+explicitly **out of scope** (see [../design/05-uvs-and-dilation.md](../design/05-uvs-and-dilation.md) §1).

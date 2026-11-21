@@ -6,7 +6,7 @@ namespace NormalBake.Core;
 /// A high-poly source mesh: indexed, struct-of-arrays triangle soup with positions and
 /// <b>smooth (interpolated vertex) normals</b>. The baker samples the high-poly's smooth normal at the
 /// ray hit, so usable normals are required; if a source file omits them they are computed area-weighted
-/// (<see cref="MeshNormals"/>). See <c>Agents/Documents/02-baking-algorithm.md</c>.
+/// (<see cref="MeshNormals"/>). See <c>docs/design/02-baking-algorithm.md</c>.
 /// </summary>
 public sealed class Mesh
 {

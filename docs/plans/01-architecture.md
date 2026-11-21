@@ -23,7 +23,7 @@ NormalBake.sln
 `NormalBake.Core` keeps a **dependency-light** runtime graph: the BVH, tangent basis, rasterizer, and
 encoding are in-repo; only pure-managed, MIT-clean packages enter `NormalBake.IO` (image/BCn I/O —
 BCnEncoder.NET, the stb ports, Pfim, Jither.OpenEXR). No native dependencies anywhere
-([../Documents/08-prior-art-tools-and-libraries.md](../Documents/08-prior-art-tools-and-libraries.md) §3).
+([../design/08-prior-art-tools-and-libraries.md](../design/08-prior-art-tools-and-libraries.md) §3).
 
 ## Core data structures
 
@@ -36,7 +36,7 @@ UvMesh (low-poly)        : Vector3[] positions, normals;  Vector2[] uvs;
 ```
 The low-poly is **triangulated once**, shortest-diagonal & MikkTSpace-consistent, and that single
 triangulation feeds both the tangent solver and the UV rasterizer (a mismatch causes X-shaped seams —
-[../Documents/07-quality-artifacts-and-aa.md](../Documents/07-quality-artifacts-and-aa.md) §3.3).
+[../design/07-quality-artifacts-and-aa.md](../design/07-quality-artifacts-and-aa.md) §3.3).
 
 ### BVH (`Acceleration/`)
 A compact, cache-friendly BVH over the high-poly, SoA node layout for single-load SIMD box tests:
@@ -47,7 +47,7 @@ Query                 : closest-hit (normal pass) + any-hit/occlusion (AO/thickn
 ```
 Built once (binned-SAH default; SBVH "high quality" option), queried `width·height·samples` times with
 short, cage-bounded `t_max`. **Woop watertight** ray-triangle intersection, two-sided
-([../Documents/06-acceleration-and-performance.md](../Documents/06-acceleration-and-performance.md)).
+([../design/06-acceleration-and-performance.md](../design/06-acceleration-and-performance.md)).
 
 ### Bake buffers (`Baking/`)
 ```

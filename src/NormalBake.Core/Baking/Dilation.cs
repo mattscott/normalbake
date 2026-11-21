@@ -6,7 +6,7 @@ namespace NormalBake.Core;
 /// from all covered texels gives every uncovered texel the colour of its nearest covered neighbour —
 /// the radial flood-fill that is the <i>only</i> correct margin for tangent-space normals (never the
 /// cross-seam "adjacent faces" copy). AA must already be resolved over the coverage mask first.
-/// See <c>Agents/Documents/05-uvs-and-dilation.md</c> §4.
+/// See <c>docs/design/05-uvs-and-dilation.md</c> §4.
 /// </summary>
 internal static class Dilation
 {

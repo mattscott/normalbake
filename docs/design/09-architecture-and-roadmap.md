@@ -1,7 +1,7 @@
 # Architecture & Roadmap
 
 This synthesizes the research into a concrete, **managed-C#/.NET 8, dependency-light, MIT-clean**
-architecture for NormalBake, and an MVP → vNext roadmap. It is a *proposal* for the `Agents/Plans`
+architecture for NormalBake, and an MVP → vNext roadmap. It is a *proposal* for the `docs/plans`
 roadmap to refine, not a final spec.
 
 ## 1. Constraints

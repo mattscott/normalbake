@@ -4,7 +4,7 @@ namespace NormalBake.Core;
 /// A baked texture: a row-major RGB image of linear (non-color) float samples in <c>[0, 1]</c>, top row
 /// first. For a tangent-space normal map a flat normal <c>(0,0,1)</c> encodes to <c>(0.5,0.5,1.0)</c>.
 /// Image writers (e.g. the 16-bit PNG writer) consume this directly; the data is <b>linear</b> and must
-/// be written with no sRGB/gamma transfer (<c>Agents/Documents/01-normal-mapping-fundamentals.md</c>).
+/// be written with no sRGB/gamma transfer (<c>docs/design/01-normal-mapping-fundamentals.md</c>).
 /// </summary>
 public sealed class BakedMap
 {

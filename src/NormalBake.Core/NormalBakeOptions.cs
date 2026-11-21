@@ -2,7 +2,7 @@ namespace NormalBake.Core;
 
 /// <summary>
 /// Green-channel convention of an encoded tangent-space normal map. The two conventions differ only
-/// in the sign of the Y (green) channel. See <c>Agents/Documents/01-normal-mapping-fundamentals.md</c>.
+/// in the sign of the Y (green) channel. See <c>docs/design/01-normal-mapping-fundamentals.md</c>.
 /// </summary>
 public enum NormalMapConvention
 {
@@ -69,7 +69,7 @@ public enum OutputFormat
 
 /// <summary>
 /// Options controlling a normal-map bake. The defaults follow the recommendations in
-/// <c>Agents/Documents</c> (tangent-space output, OpenGL convention, 16-bit, 4x supersampling).
+/// <c>docs/design</c> (tangent-space output, OpenGL convention, 16-bit, 4x supersampling).
 /// </summary>
 public sealed class NormalBakeOptions
 {

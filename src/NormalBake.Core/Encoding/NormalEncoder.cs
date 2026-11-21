@@ -7,7 +7,7 @@ namespace NormalBake.Core;
 /// back. A flat normal <c>(0,0,1)</c> maps to <c>(0.5,0.5,1.0)</c> — the familiar bluish look. The
 /// <see cref="NormalMapConvention"/> flips only the green (Y) channel: OpenGL is +Y (green up), DirectX
 /// is −Y (green down). The data is <b>linear</b> (no sRGB) — see
-/// <c>Agents/Documents/01-normal-mapping-fundamentals.md</c>.
+/// <c>docs/design/01-normal-mapping-fundamentals.md</c>.
 /// </summary>
 public static class NormalEncoder
 {

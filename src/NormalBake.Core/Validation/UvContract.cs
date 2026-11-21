@@ -8,7 +8,7 @@ namespace NormalBake.Core;
 /// sanity (indices, finiteness), non-overlap in the active 0–1 tile, and inter-island gutters ≥ 2× the
 /// edge padding. UV seams at hard edges are enforced implicitly — a hard edge with shared UVs shows up
 /// as a tangent discontinuity downstream — and a light texel-density check flags near-empty layouts.
-/// See <c>Agents/Documents/05-uvs-and-dilation.md</c>.
+/// See <c>docs/design/05-uvs-and-dilation.md</c>.
 /// </summary>
 public static class UvContract
 {

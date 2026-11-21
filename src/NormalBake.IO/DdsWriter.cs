@@ -17,7 +17,7 @@ public enum BlockCompression
 
 /// <summary>
 /// Writes a baked map as a block-compressed DDS via BCnEncoder.NET (pure-managed, MIT/Unlicense — the
-/// vetted BC encoder, <c>Agents/Documents/08</c> §3.1). BC5 stores the normal's X/Y; the engine
+/// vetted BC encoder, <c>docs/design/08</c> §3.1). BC5 stores the normal's X/Y; the engine
 /// reconstructs Z. Round-trip with <see cref="DdsReader"/> to compare against the uncompressed map.
 /// </summary>
 public static class DdsWriter

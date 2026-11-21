@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <!--
-    Runtime dependencies are added per phase (see Agents/Plans/02-phase-roadmap.md), all
+    Runtime dependencies are added per phase (see docs/plans/02-phase-roadmap.md), all
     pure-managed and MIT-clean — e.g. BCnEncoder.NET, StbImageSharp/StbImageWriteSharp, Pfim,
     Jither.OpenEXR. ImageSharp is deliberately avoided (Six Labors Split License).
   -->

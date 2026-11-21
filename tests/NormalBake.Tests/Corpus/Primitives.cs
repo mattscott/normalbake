@@ -11,7 +11,7 @@ public sealed record MeshPair(string Name, Mesh High, UvMesh Low);
 /// high-poly plus a coarse, UV-unwrapped low-poly — exercising curvature and hard edges without any
 /// downloaded asset: a lat-long <b>sphere</b> (one UV island), a flat-low / rounded-high <b>box</b>
 /// (six per-face islands, hard edges), and a <b>cylinder</b> (side + two caps, three islands). See
-/// <c>Agents/Prompts/01-implementation-kickoff.md</c> §9A.
+/// <c>tests/corpus/README.md</c>.
 /// </summary>
 public static class Primitives
 {

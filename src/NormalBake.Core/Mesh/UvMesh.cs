@@ -7,7 +7,7 @@ namespace NormalBake.Core;
 /// tool — NormalBake validates them, it does not unwrap). Struct-of-arrays: positions, smooth normals,
 /// UVs, an optional per-vertex tangent basis (<c>xyz</c> direction + <c>w</c> handedness), and one
 /// shared triangle index buffer. That single triangulation feeds both the tangent solver and the UV
-/// rasterizer (a mismatch causes X-shaped seams). See <c>Agents/Documents/03-tangent-space-and-mikktspace.md</c>.
+/// rasterizer (a mismatch causes X-shaped seams). See <c>docs/design/03-tangent-space-and-mikktspace.md</c>.
 /// </summary>
 public sealed class UvMesh
 {

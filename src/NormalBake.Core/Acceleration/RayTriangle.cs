@@ -8,7 +8,7 @@ namespace NormalBake.Core;
 /// there. Because adjacent triangles share the exact same edge computation, there are no cracks or
 /// double hits at shared edges. Two-sided (no back-face cull). A double-precision fallback on any
 /// exactly-zero edge function preserves watertightness for grazing rays.
-/// (<c>Agents/Documents/06-acceleration-and-performance.md</c>.)
+/// (<c>docs/design/06-acceleration-and-performance.md</c>.)
 /// </summary>
 internal readonly struct RayShear
 {
