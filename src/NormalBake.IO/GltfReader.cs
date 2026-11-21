@@ -142,6 +142,12 @@ public static class GltfReader
             int len = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(pos));
             uint type = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(pos + 4));
             int start = pos + 8;
+            if (len < 0 || len > data.Length - start)
+            {
+                // A negative length would leave pos unchanged and loop forever; an oversized one reads past the end.
+                throw new InvalidDataException($"glTF chunk at {pos} has an invalid length {len}.");
+            }
+
             if (type == ChunkJson)
             {
                 json = data[start..(start + len)];
@@ -209,6 +215,7 @@ public static class GltfReader
         count = acc.GetProperty("count").GetInt32();
         int accOffset = acc.TryGetProperty("byteOffset", out JsonElement ao) ? ao.GetInt32() : 0;
         (int viewOffset, int stride) = BufferView(root, acc, components * sizeof(float));
+        RequireInBuffer(bin, count, viewOffset, accOffset, stride, components * sizeof(float));
 
         var result = new float[count * components];
         for (int i = 0; i < count; i++)
@@ -238,6 +245,7 @@ public static class GltfReader
             _ => throw new InvalidDataException($"unsupported index component type {componentType}."),
         };
         (int viewOffset, int stride) = BufferView(root, acc, size);
+        RequireInBuffer(bin, count, viewOffset, accOffset, stride, size);
 
         var result = new int[count];
         for (int i = 0; i < count; i++)
@@ -260,6 +268,24 @@ public static class GltfReader
         int offset = view.TryGetProperty("byteOffset", out JsonElement bo) ? bo.GetInt32() : 0;
         int stride = view.TryGetProperty("byteStride", out JsonElement bs) ? bs.GetInt32() : tightStride;
         return (offset, stride);
+    }
+
+    /// <summary>
+    /// Checks an accessor's declared extent against the binary chunk before anything is allocated, so a
+    /// small file cannot make the reader allocate arrays sized by an untrusted <c>count</c>.
+    /// </summary>
+    private static void RequireInBuffer(byte[] bin, int count, int viewOffset, int accOffset, int stride, int elementSize)
+    {
+        if (count < 0 || viewOffset < 0 || accOffset < 0 || stride < elementSize)
+        {
+            throw new InvalidDataException("glTF accessor has a negative count/offset or a stride smaller than its element.");
+        }
+
+        long end = count == 0 ? 0 : (long)viewOffset + accOffset + ((long)(count - 1) * stride) + elementSize;
+        if (end > bin.Length)
+        {
+            throw new InvalidDataException($"glTF accessor needs {end} bytes but the binary chunk has {bin.Length}.");
+        }
     }
 
     private static int[] Sequential(int count)
