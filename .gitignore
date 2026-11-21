@@ -39,10 +39,14 @@ Thumbs.db
 .DS_Store
 
 # Claude Code personal/local settings (shared .claude/settings.json may be committed)
-.claude/settings.local.json
+.claude/
 
 # Local end-to-end scratch (downloaded assets, generated meshes, ad-hoc bakes)
 _e2e/
 
 # Local FBX test assets (hand-authored game meshes; kept local, not committed)
 Assets/
+
+# Local preview renders written to the repo root by tools/*.py (kept out of git)
+/*.png
+/*.svg

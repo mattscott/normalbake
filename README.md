@@ -1,5 +1,7 @@
 # NormalBake
 
+[![ci](https://github.com/mattscott/normalbake/actions/workflows/ci.yml/badge.svg)](https://github.com/mattscott/normalbake/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A standalone, permissively-licensed, **dependency-light, cross-platform managed-C# (.NET 8)** library +
 CLI that bakes a **normal map** (and AO, curvature, position, thickness, object ID) from a
 high-resolution mesh into the UV space of a low-resolution (quad-remeshed) mesh — so the low-poly
@@ -25,13 +27,17 @@ are a **MikkTSpace-synced tangent basis** and a good **cage/projection** envelop
 
 ## Install
 
-```sh
-# CLI as a global tool:
-dotnet tool install --global NormalBake.Tool
+NormalBake is not on NuGet yet. Build the packages from source:
 
-# or reference the libraries:
-dotnet add package NormalBake.Core
-dotnet add package NormalBake.IO
+```sh
+dotnet pack -c Release -o artifacts
+
+# CLI as a global tool, from the local packages:
+dotnet tool install --global --add-source ./artifacts NormalBake.Tool
+
+# or reference the libraries from the same local source:
+dotnet add package NormalBake.Core --source ./artifacts
+dotnet add package NormalBake.IO --source ./artifacts
 ```
 
 ## CLI usage
@@ -110,7 +116,7 @@ Baked from the procedural corpus (`tests/corpus/`) — normal, ambient occlusion
 ```
 src/
   NormalBake.Core/   library: BVH ray tracer, MikkTSpace tangents, projection bake, encoding
-  NormalBake.IO/     OBJ + glTF readers; PNG, DDS (BCnEncoder.NET), EXR writers
+  NormalBake.IO/     OBJ, glTF and binary FBX readers; PNG, DDS (BCnEncoder.NET), EXR writers
   NormalBake.Cli/    the `normalbake` command-line tool
 tests/
   NormalBake.Tests/  unit + analytic-oracle tests;  corpus/  procedural mesh pairs
@@ -127,6 +133,10 @@ dotnet test
 
 Requires the .NET 8 runtime (the SDK may be newer; `global.json` rolls forward). CI builds Release and
 runs the suite on Windows + Linux.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Please report security issues privately ([SECURITY.md](SECURITY.md)).
 
 ## License
 
